@@ -22,7 +22,7 @@ class Destination(object):
         c = Client(checksum, verbose, dryrun)
 
         mappings = ["http://zandbak11.dans.knaw.nl/shiny/resy/=/Users/ecco/tmp/resy",
-                    "http://zandbak11.dans.knaw.nl/shiny/rs/=/Users/ecco/tmp/rs"]
+                    "file:///Users/ecco/git/resydes/des/test/rs/source/s2/files/=/Users/ecco/tmp/rs"]
         c.set_mappings(mappings)
 
         allow_deletion = False
