@@ -10,6 +10,10 @@
 
 import logging
 from des.desclient import DesClient
+from resync.client import ClientFatalError
+
+
+
 
 class Runner(object):
 
@@ -23,6 +27,15 @@ class Runner(object):
         '''
         self.logger = logging.getLogger(__name__)
         self.mappings = mappings
+
+    def read_mappings(self, filename):
+        """
+        Read the mappings from a file. Lines in the file have format url=destination_folder
+        :param filename: the name of the file
+        :return: None
+        """
+        with open(filename) as file:
+            self.mappings = file.read().splitlines()
 
     def run_audit(self):
         """
@@ -70,12 +83,15 @@ class Runner(object):
         #
         self.logger.info("Start baseline_or_audit. #mappings=%s dryrun=%s", len(self.mappings), dryrun)
 
-        client = DesClient(checksum, verbose, dryrun)
+        desclient = DesClient(checksum, verbose, dryrun)
         # The client only ever does the first of the mappings so why is the mappings a list?
         # Split out the mappings in individual ones and do the baseline or audit on each.
         for map in self.mappings:
             self.logger.info("Audit or baseline on %s", map)
-            client.set_mappings([map])
-            client.baseline_or_audit(allow_deletion, audit_only)
+            try:
+                desclient.set_mappings([map])
+                desclient.baseline_or_audit(allow_deletion, audit_only)
+            except ClientFatalError as err:
+                self.logger.warn("Exception while syncing %s" % map, exc_info=True)
 
-        return client
+        return desclient
