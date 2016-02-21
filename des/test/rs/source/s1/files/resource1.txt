@@ -1,0 +1,1 @@
+resource1 in s1
