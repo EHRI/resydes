@@ -1,3 +1,0 @@
-2016-02-10 16:15:41,829 - INFO     Starting a new Destination [destination.py:14]
-2016-02-10 16:15:41,830 - DEBUG    Starting audit [client.py:135]
-2016-02-10 16:15:41,830 - INFO     Reading sitemap http://zandbak11.dans.knaw.nl/shiny/resy/resourcelist.xml [client.py:146]
