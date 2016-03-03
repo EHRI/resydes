@@ -19,11 +19,16 @@ CAPA_CHANGEDUMP = "changedump"
 
 
 class Status(Enum):
-    init = 1
-    read_error = 2
-    document = 3
-    processed_with_exceptions = 4
-    processed = 5
+    """
+    The status of a Processor
+    """
+    init = 1                        # processor is in initial state.
+    read_error = 2                  # processor tried to read its assigned uri but failed.
+    document = 3                    # processor has read and parsed its assigned uri.
+    processed_with_exceptions = 4   # processor has done implied actions according to document from assigned uri
+                                    # but did not succeed completely.
+    processed = 5                   # processor has done implied actions according to document from assigned uri.
+
 
 class Processor(object):
     """
@@ -32,7 +37,7 @@ class Processor(object):
 
     def __init__(self, source_uri, expected_capability):
         """
-
+        Initialize this class.
         :param source_uri: the uri of the sitemap that must be read
         :param expected_capability: the expected capability of the sitemap
         :return: None
@@ -103,15 +108,15 @@ class Processor(object):
     @abc.abstractmethod
     def process_source(self):
         """
-
-        :return:
+        Check that the source document is loaded and correct and if so do any processing the source document implies.
+        :return: None
         """
         raise NotImplementedError
 
     def __assert_document__(self):
         """
-        Make sure the source document is read and correct.
-        :return: True if source document is read and correct, False otherwise
+        Make sure the source document is loaded and correct.
+        :return: True if source document is loaded and correct, False otherwise
         """
         self.logger.debug("Start %s on %s" % (self.__class__.__name__, self.source_uri))
         if not self.status is Status.document:
@@ -122,7 +127,9 @@ class Processor(object):
 
 
 class Discoverer(Processor):
-
+    """
+    Discoverer eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
+    """
     def __init__(self, base_uri):
         self.logger = logging.getLogger(__name__)
         # urllib.parse.urljoin leaves out the last part of a path if it doesn't end with '/'
@@ -148,7 +155,9 @@ class Discoverer(Processor):
 
 
 class Capaproc(Processor):
-
+    """
+    Capaproc eats the uri of a capability list and processes the contents.
+    """
     def __init__(self, uri):
         self.logger = logging.getLogger(__name__)
         super(Capaproc, self).__init__(uri, CAPA_CAPABILITYLIST)
@@ -179,7 +188,7 @@ class Capaproc(Processor):
 
 class Relisync(object):
     """
-    Synchronisation with a resource list. Synchronisation is eventually done with the resync.client.Client
+    Synchronisation of a resource list. Synchronisation is eventually done with the resync.client.Client
     """
     def __init__(self, resource):
         self.logger = logging.getLogger(__name__)
