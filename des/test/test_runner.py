@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import unittest, logging, logging.config, os.path, pathlib, glob, shutil, time
+import unittest, logging, logging.config, os.path, pathlib, glob, shutil, datetime
 from des.runner import Runner
 from resync.client import Client, ClientFatalError
 
@@ -58,10 +58,11 @@ class TestRunner(unittest.TestCase):
         shutil.rmtree(d2_files, ignore_errors=True)
 
 
-    def __create_resourcelist__(self, src):
+    def __create_resourcelist__(self, src, checksum=True):
         """
-        Create a resourcelist xml for the source denominated by out.
+        Create a resourcelist xml for the source denominated by src.
         :param src: either 's1' or 's2'
+        :param checksum: should checksums be added to the xml.
         :return:
         """
         abs_path = os.path.dirname(os.path.abspath(__name__))
@@ -72,7 +73,7 @@ class TestRunner(unittest.TestCase):
         outfile = os.path.join(abs_path, "rs/source", src, "resourcelist.xml")
 
         # create a resourcelist from the files in test/rs/files
-        client = Client(checksum=True)
+        client = Client(checksum=checksum)
 
         prefix_path = os.path.join(abs_path, "rs/source", src, "files")
         prefix = pathlib.Path(prefix_path).as_uri()
@@ -81,6 +82,39 @@ class TestRunner(unittest.TestCase):
 
         client.set_mappings(args)
         client.write_resource_list(paths, outfile)
+
+    def __create_changelist__(self, src, checksum=True):
+        """
+        Create a changelist xml for the source denominated by src.
+        :param src: either 's1' or 's2'
+        :param checksum: should checksums be added to the xml.
+        :return:
+        """
+        abs_path = os.path.dirname(os.path.abspath(__name__))
+        data = [os.path.join(abs_path, "rs/source", src, "files/resource1.txt"),
+                os.path.join(abs_path, "rs/source", src, "files/resource2.txt")]
+        paths = ",".join(data)
+
+        outfile = os.path.join(abs_path, "rs/source", src, "changelist.xml")
+
+        ref_sitemap = pathlib.Path(os.path.join(abs_path, "rs/source", src, "resourcelist.xml")).as_uri()
+
+        client = Client(checksum=checksum)
+
+        prefix_path = os.path.join(abs_path, "rs/source", src, "files")
+        prefix = pathlib.Path(prefix_path).as_uri()
+        resourcedir = os.path.join(abs_path, "rs/source", src, "files")
+        args = [prefix, resourcedir]
+        client.set_mappings(args)
+
+        client.write_change_list(paths=paths, outfile=outfile, ref_sitemap=ref_sitemap)
+
+    def __change_resource__(self, src, resource):
+        abs_path = os.path.dirname(os.path.abspath(__name__))
+        filename = os.path.join(abs_path, "rs/source", src, "files", resource + ".txt")
+        with open(filename, "a") as file:
+            file.write("\n%s" % str(datetime.datetime.now()))
+
 
     def test01_baseline_or_audit(self):
         # no mappings
@@ -104,7 +138,9 @@ class TestRunner(unittest.TestCase):
         self.__clear_destination__()
         runner = Runner(self.__create_mappings__())
         # should continue with syncing the mappings, even if some sources do not expose a resource.xml
-        runner.run_baseline()
+        desclient = runner.run_baseline()
+        # should report the error
+        desclient.sync_status_to_file("logs/baseline-err.csv")
 
     def test04_run_audit(self):
         # do an audit on the 2 sources in the mappings
@@ -135,8 +171,8 @@ class TestRunner(unittest.TestCase):
         # do a baseline synchronisation on the 2 sources in the mappings
         self.__clear_sources_xml__("s1")
         self.__clear_sources_xml__("s2")
-        self.__create_resourcelist__("s1")
-        self.__create_resourcelist__("s2")
+        self.__create_resourcelist__("s1", checksum=False)
+        self.__create_resourcelist__("s2", checksum=True)
         self.__clear_destination__()
         self.assertFalse(os.path.isdir("rs/destination/d1/files"))
         self.assertFalse(os.path.isdir("rs/destination/d2/files"))
@@ -147,6 +183,10 @@ class TestRunner(unittest.TestCase):
         logger.debug("\n=================\n")
         runner = Runner(mappings)
         client_1 = runner.run_baseline()
+
+        # we set checksum=True initially on the client and it should stay like that during the complete run of all
+        # the sources.
+        self.assertTrue(client_1.checksum)
 
         client_1.sync_status_to_file("logs/baseline.csv")
         self.assertEqual(4, len(client_1.sync_status))
@@ -195,3 +235,78 @@ class TestRunner(unittest.TestCase):
         runner = Runner()
         runner.read_mappings("rs/mappings.txt")
         self.assertEqual(mappings, runner.mappings)
+
+    def test21_incremental(self):
+        # only one changelist present
+        self.__clear_sources_xml__("s1")
+        self.__clear_sources_xml__("s2")
+        self.__create_resourcelist__("s1", checksum=False)
+        self.__create_resourcelist__("s2", checksum=True)
+        self.__create_changelist__("s1")
+        mappings = self.__create_mappings__()
+
+        logger.debug("\n=================\n")
+        runner = Runner(mappings)
+        desclient = runner.run_incremental(dryrun=True)
+        desclient.sync_status_to_file("logs/incremental_audit.csv")
+
+        self.assertEqual(2, len(desclient.sync_status))
+
+        self.assertTrue(desclient.sync_status[0].in_sync)
+        self.assertIsNone(desclient.sync_status[1].in_sync)
+
+        self.assertIsNone(desclient.sync_status[0].exception)
+        self.assertIsNotNone(desclient.sync_status[1].exception)
+
+    def test22_incremental(self):
+        # one source changed
+        self.__clear_sources_xml__("s1")
+        self.__clear_sources_xml__("s2")
+        self.__create_resourcelist__("s1", checksum=False)
+        self.__create_resourcelist__("s2", checksum=True)
+        self.__change_resource__("s1", "resource1")
+        self.__create_changelist__("s1")
+        self.__create_changelist__("s2")
+        mappings = self.__create_mappings__()
+
+        logger.debug("\n=================\n")
+        runner = Runner(mappings)
+        desclient = runner.run_incremental(dryrun=False)
+        desclient.sync_status_to_file("logs/incremental.csv")
+
+        # 2 times for the changed source + 1 time for the unchanged one
+        self.assertEqual(3, len(desclient.sync_status))
+        # s1 not in sync
+        self.assertFalse(desclient.sync_status[0].in_sync)
+        # s1 is updated
+        self.assertEqual(1, desclient.sync_status[1].updated)
+        # s2 in sync
+        self.assertTrue(desclient.sync_status[2].in_sync)
+
+    def test23_incremental(self):
+        # one source changed, is checksum checked?
+        self.__clear_sources_xml__("s1")
+        self.__clear_sources_xml__("s2")
+        self.__create_resourcelist__("s1", checksum=True)
+        self.__create_resourcelist__("s2", checksum=True)
+        self.__change_resource__("s1", "resource1")
+        self.__create_changelist__("s1")
+        self.__create_changelist__("s2")
+        # mess around with the resource so checksums don't match
+        self.__change_resource__("s1", "resource1")
+        mappings = self.__create_mappings__()
+
+        # only emits INFO messages in standard log-output. Mismatch of individual resources should be reported.
+        logger.debug("\n=================\n")
+        runner = Runner(mappings)
+        desclient = runner.run_incremental(dryrun=False)
+        desclient.sync_status_to_file("logs/incremental.csv")
+
+    def test41_explore(self):
+        mappings = self.__create_mappings__()
+
+        logger.debug("\n=================\n")
+        runner = Runner(mappings)
+        desclient = runner.run_explore()
+
+

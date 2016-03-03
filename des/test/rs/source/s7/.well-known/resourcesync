@@ -5,19 +5,19 @@
          href="http://example.com/info_about_source.xml"/>
   <rs:md capability="description"/>
   <url>
-      <loc>http://example.com/capabilitylist1.xml</loc>
+      <loc>http://localhost:8000/rs/source/s7/capa/capabilitylist1.xml</loc>
       <rs:md capability="capabilitylist"/>
       <rs:ln rel="describedby"
              href="http://example.com/info_about_set1_of_resources.xml"/>
   </url>
   <url>
-      <loc>http://example.com/capabilitylist2.xml</loc>
+      <loc>http://localhost:8000/rs/source/s7/capa/capabilitylist2.xml</loc>
       <rs:md capability="capabilitylist"/>
       <rs:ln rel="describedby"
              href="http://example.com/info_about_set2_of_resources.xml"/>
   </url>
   <url>
-      <loc>http://example.com/capabilitylist3.xml</loc>
+      <loc>http://localhost:8000/rs/source/s7/capa/capabilitylist3.xml</loc>
       <rs:md capability="capabilitylist"/>
       <rs:ln rel="describedby"
              href="http://example.com/info_about_set3_of_resources.xml"/>

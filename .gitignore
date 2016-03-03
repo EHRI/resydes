@@ -65,8 +65,9 @@ resync
 venv/
 */**/logs/resy*
 */**/.resync-client-status.cfg
-*/**/audit.csv
-*/**/baseline.csv
+*/**/audit*.csv
+*/**/baseline*.csv
+*/**/incremental*.csv
 */**/mappings.txt
 */**/resourcelist.xml
 des/test/rs/destination/d1/files/

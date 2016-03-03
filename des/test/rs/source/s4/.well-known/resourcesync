@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<geonames>
+<code>
+<postalcode>8761</postalcode>
+<name>Ferwoude</name>
+<countryCode>NL</countryCode>
+<lat>53.00549</lat>
+<lng>5.43283</lng>
+<adminCode1 ISO3166-2="FR">02</adminCode1>
+<adminName1>Provincie Friesland</adminName1>
+<adminCode2>0710</adminCode2>
+<adminName2>Gemeente Wûnseradiel</adminName2>
+<adminCode3/>
+<adminName3/>
+<distance>1.3874</distance>
+</code>
+<code>
+<postalcode>8711</postalcode>
+<name>Workum</name>
+<countryCode>NL</countryCode>
+<lat>52.98333</lat>
+<lng>5.45</lng>
+<adminCode1 ISO3166-2="FR">02</adminCode1>
+<adminName1>Provincie Friesland</adminName1>
+<adminCode2>0104</adminCode2>
+<adminName2>Gemeente Nijefurd</adminName2>
+<adminCode3/>
+<adminName3/>
+<distance>1.7219</distance>
+</code>
+<code>
+<postalcode>8710</postalcode>
+<name>Workum</name>
+<countryCode>NL</countryCode>
+<lat>52.98333</lat>
+<lng>5.45</lng>
+<adminCode1 ISO3166-2="FR">02</adminCode1>
+<adminName1>Provincie Friesland</adminName1>
+<adminCode2>0104</adminCode2>
+<adminName2>Gemeente Nijefurd</adminName2>
+<adminCode3/>
+<adminName3/>
+<distance>1.7219</distance>
+</code>
+<code>
+<postalcode>8762</postalcode>
+<name>Hieslum</name>
+<countryCode>NL</countryCode>
+<lat>53.00822</lat>
+<lng>5.48862</lng>
+<adminCode1 ISO3166-2="FR">02</adminCode1>
+<adminName1>Provincie Friesland</adminName1>
+<adminCode2>0710</adminCode2>
+<adminName2>Gemeente Wûnseradiel</adminName2>
+<adminCode3/>
+<adminName3/>
+<distance>2.76579</distance>
+</code>
+<code>
+<postalcode>8775</postalcode>
+<name>Nijhuizum</name>
+<countryCode>NL</countryCode>
+<lat>52.98333</lat>
+<lng>5.48333</lng>
+<adminCode1 ISO3166-2="FR">02</adminCode1>
+<adminName1>Provincie Friesland</adminName1>
+<adminCode2>0104</adminCode2>
+<adminName2>Gemeente Nijefurd</adminName2>
+<adminCode3/>
+<adminName3/>
+<distance>2.79964</distance>
+</code>
+</geonames>
