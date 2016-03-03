@@ -1,0 +1,3 @@
+http://long.name.com=destination1
+https://first.com:8080/path1/to/resource.xml=destination2
+https://first.com:8080/path2=destination3

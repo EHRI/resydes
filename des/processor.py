@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import resync
 from enum import Enum
 from resync.sitemap import Sitemap
+from des.location_mapper import DestinationMap
 
 WELLKNOWN_RESOURCE = ".well-known/resourcesync"
 CAPA_DESCRIPTION = "description"
@@ -160,9 +161,9 @@ class Capaproc(Processor):
         for resource in self.source_document.resources:
             capability = resource.capability
             if capability == CAPA_RESOURCELIST:
-                reliproc = Reliproc(resource.uri)
-                reliproc.process_source()
-                self.exceptions.extend(reliproc.exceptions)
+                relisync = Relisync(resource)
+                relisync.process_source()
+                self.exceptions.extend(relisync.exceptions)
             elif capability == CAPA_RESOURCEDUMP:
                 pass
             elif capability == CAPA_CHANGELIST:
@@ -176,17 +177,20 @@ class Capaproc(Processor):
         self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
 
 
-class Reliproc(Processor):
-
-    def __init__(self, uri):
+class Relisync(object):
+    """
+    Synchronisation with a resource list. Synchronisation is eventually done with the resync.client.Client
+    """
+    def __init__(self, resource):
         self.logger = logging.getLogger(__name__)
-        super(Reliproc, self).__init__(uri, CAPA_RESOURCELIST)
+        self.resource = resource
+
+        self.exceptions = []
 
     def process_source(self):
-        if not self.__assert_document__():
-            return
+        uri = self.resource.uri
+        destination = DestinationMap().find_destination(uri, netloc=True)
 
-        # The source document is a resourcelist
-        for resource in self.source_document.resources:
-            print(resource.hash)
+
+
 
