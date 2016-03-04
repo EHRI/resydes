@@ -2,16 +2,20 @@
 # -*- coding: utf-8 -*-
 
 
-import unittest, logging, logging.config, threading
-from des.processor import Discoverer, Status
+import unittest, logging, logging.config, threading, resync.resource_container
+from des.processor import Discoverer, Status, Relisync
+from des.config import Config
+from des.location_mapper import DestinationMap
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+from unittest.mock import MagicMock
 
 logging.config.fileConfig('logging.conf')
 
 logger = logging.getLogger(__name__)
 
 
-class TestDiscover(unittest.TestCase):
+class TestDiscoverer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -124,3 +128,31 @@ class TestDiscover(unittest.TestCase):
         self.assertEqual(Status.processed_with_exceptions, discoverer.status)
 
 
+class TestRelisync(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        Config._set_config_filename("test-files/config.txt")
+        DestinationMap._set_map_filename("test-files/desmap.txt")
+
+    def test01_no_destination(self):
+        Config().__set_prop__(Config.key_use_netloc, "False")
+        DestinationMap().__remove_destination__("http://bla.com")
+
+        resource = MagicMock(uri="http://bla.com")
+
+        relisync = Relisync(resource)
+        relisync.process_source()
+        self.assertEqual(1, len(relisync.exceptions))
+        self.assertEqual("No destination for http://bla.com", relisync.exceptions[0])
+
+        DestinationMap().__set_destination__("http://bla.com", "destination_x")
+        relisync = Relisync(resource)
+        relisync.process_source()
+        self.assertEqual(0, len(relisync.exceptions))
+
+        Config().__set_prop__(Config.key_use_netloc, "True")
+        DestinationMap().__remove_destination__("http://bla.com")
+        relisync = Relisync(resource)
+        relisync.process_source()
+        self.assertEqual(0, len(relisync.exceptions))

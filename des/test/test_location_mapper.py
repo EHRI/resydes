@@ -65,7 +65,18 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("https://docs.python.org/3.4/library", new_uri)
         self.assertEqual("/3.4/library", new_path)
 
-    def test04_find_destination(self):
+    def test04_set_filename_once(self):
+        DestinationMap._set_map_filename("test-files/desmap.txt")
+        self.assertEqual("test-files/desmap.txt", DestinationMap._get_map_filename())
+        desmap = DestinationMap()
+        self.assertEqual("test-files/desmap.txt", desmap._map_filename)
+
+        DestinationMap._set_map_filename("test-files/other-desmap.txt")
+        self.assertEqual("test-files/desmap.txt", DestinationMap._get_map_filename())
+        desmap = DestinationMap()
+        self.assertEqual("test-files/desmap.txt", desmap._map_filename)
+
+    def test05_find_destination(self):
         DestinationMap._set_map_filename("test-files/desmap.txt")
         desmap = DestinationMap()
 
@@ -82,7 +93,6 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("destination1", desmap.find_destination(uri))
 
         #
-
         uri = "https://first.com:8080/path1"
         self.assertIsNone(desmap.find_destination(uri))
 
@@ -96,12 +106,10 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("destination3", desmap.find_destination(uri))
 
         #
-
         uri = "https://not.mapped.com/resource.xml"
         self.assertEqual("default/path", desmap.find_destination(uri, "default/path"))
 
         #
-
         uri = "https://not.mapped.com/resource.xml"
         self.assertEqual("not.mapped.com", desmap.find_destination(uri, netloc=True))
 

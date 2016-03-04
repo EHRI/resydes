@@ -18,8 +18,12 @@ class DestinationMap(object):
 
     @staticmethod
     def _set_map_filename(map_filename):
-        DestinationMap.__get__logger().info("Setting map_filenamee to %s", map_filename)
-        DestinationMap._map_filename = map_filename
+        if DestinationMap._instance is None:
+            DestinationMap.__get__logger().info("Setting map_filename to '%s'", map_filename)
+            DestinationMap._map_filename = map_filename
+        else:
+            DestinationMap.__get__logger().warn("Setting map_filename on already initialized class. Using '%s'"
+                                        % DestinationMap._get_map_filename())
 
     @staticmethod
     def _get_map_filename():
@@ -42,18 +46,21 @@ class DestinationMap(object):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(DestinationMap, cls).__new__(cls, *args, **kwargs)
             filename = DestinationMap._get_map_filename()
-            DestinationMap.__get__logger().info("Creating DestinationMap._instance from %s" % filename)
+            DestinationMap.__get__logger().info("Creating DestinationMap._instance from '%s'" % filename)
             with open(filename) as file:
                 lines = file.read().splitlines()
 
             DestinationMap.mappings = dict()
             for line in lines:
-                k, v = line.split("=")
-                DestinationMap.mappings[k] = v
+                if line.strip() == "" or line.startswith("#"):
+                    pass
+                else:
+                    k, v = line.split("=")
+                    DestinationMap.mappings[k] = v
 
-            DestinationMap.__get__logger().info("Found %d entries in %s" % (len(DestinationMap.mappings), filename))
+            DestinationMap.__get__logger().info("Found %d entries in '%s'" % (len(DestinationMap.mappings), filename))
+            cls._instance = super(DestinationMap, cls).__new__(cls, *args, **kwargs)
 
         return cls._instance
 
@@ -64,7 +71,7 @@ class DestinationMap(object):
         while destination is None:
             try:
                 destination = self.mappings[s_uri]
-            except KeyError as err:
+            except KeyError:
                 if path == "":
                     break
                 else:
@@ -78,4 +85,12 @@ class DestinationMap(object):
 
         return destination
 
+    def __set_destination__(self, uri, destination):
+        self.mappings[uri] = destination
+
+    def __remove_destination__(self, uri):
+        try:
+            del self.mappings[uri]
+        except KeyError:
+            pass
 

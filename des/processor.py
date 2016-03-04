@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import requests, urllib.parse, xml, abc
+import requests, urllib.parse, xml, abc, os.path
 import xml.etree.ElementTree as ET
 import resync
+import des.desclient
 from enum import Enum
 from resync.sitemap import Sitemap
 from des.location_mapper import DestinationMap
+from des.config import Config
 
 WELLKNOWN_RESOURCE = ".well-known/resourcesync"
 CAPA_DESCRIPTION = "description"
@@ -191,6 +193,11 @@ class Relisync(object):
     Synchronisation of a resource list. Synchronisation is eventually done with the resync.client.Client
     """
     def __init__(self, resource):
+        """
+        Initialize a Relisync
+        :param resource: a resync.resource_container.ResourceContainer (@!:x(for ducktyping)
+        :return: None
+        """
         self.logger = logging.getLogger(__name__)
         self.resource = resource
 
@@ -198,7 +205,21 @@ class Relisync(object):
 
     def process_source(self):
         uri = self.resource.uri
-        destination = DestinationMap().find_destination(uri, netloc=True)
+        config = Config()
+        netloc = config.boolean_prop(Config.key_use_netloc, False)
+        destination = DestinationMap().find_destination(uri, netloc=netloc)
+        if destination is None:
+            self.logger.debug("No destination for %s" % uri)
+            self.exceptions.append("No destination for %s" % uri)
+            return
+
+        # Parameters in the method client.baseline_or_audit
+        audit_only = config.boolean_prop(Config.key_audit_only, True)
+        allow_deletion = not audit_only
+        dryrun = audit_only
+
+        desclient = des.desclient.instance()
+
 
 
 

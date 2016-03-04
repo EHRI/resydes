@@ -3,6 +3,45 @@
 
 import logging, datetime
 from resync.client import Client
+from des.config import Config
+
+_instance = None
+
+
+def instance():
+    """
+    resync.Client is a somewhat heavy class. Desclient inherits and is adapted to be used during one run of
+    resyncing several sources. For convenience: grab the one instance from here.
+    :return: an instance of Desclient
+    """
+    global _instance
+    logger = logging.getLogger(__name__)
+    if _instance is None:
+        config = Config()
+
+        # Parameters in the constructor of resync Client
+        checksum = config.boolean_prop(Config.key_use_checksum, True)
+        verbose = False
+
+        # Parameters in the method client.baseline_or_audit
+        audit_only = config.boolean_prop(Config.key_audit_only, True)
+        dryrun = audit_only
+
+        _instance = DesClient(checksum, verbose, dryrun)
+        logger.debug("Created a new %s [checksum=%s, verbose=%s, dryrun=%s]"
+                         % ( _instance.__class__.__name__ , checksum, verbose, dryrun))
+
+    return _instance
+
+
+def reset_instance():
+    """
+    Reset the _instance variable: next time an instance is requested it will be constructed anew.
+    :return: None
+    """
+    global _instance
+    _instance = None
+
 
 class DesClient(Client):
 
