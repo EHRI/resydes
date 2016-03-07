@@ -64,6 +64,9 @@ class DestinationMap(object):
 
         return cls._instance
 
+    def __drop__(self):
+        DestinationMap._instance = None
+
     def find_destination(self, uri, default_destination=None, netloc=False):
         s_uri = uri
         destination = None

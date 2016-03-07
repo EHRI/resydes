@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 class TestConfig(unittest.TestCase):
 
+    def setUp(self):
+        Config._set_config_filename("test-files/config.txt")
+        Config().__drop__()
+
     def test01_new(self):
         Config._set_config_filename("test-files/no-config.txt")
 
@@ -40,4 +44,20 @@ class TestConfig(unittest.TestCase):
 
         self.assertTrue(config.boolean_prop("no_key", True))
         self.assertFalse(config.boolean_prop("no_key", False))
+
+    def test04__drop__(self):
+        Config._set_config_filename("test-files/config.txt")
+        config1 = Config()
+
+        self.assertIsNotNone(config1)
+        self.assertIsNone(config1.prop("this_is"))
+        config1.__drop__()
+        self.assertIsNone(Config._instance)
+
+        Config._set_config_filename("test-files/alt-config.txt")
+        config2 = Config()
+        self.assertIsNotNone(config2)
+        self.assertNotEqual(config1, config2)
+        self.assertEqual("a_test", config2.prop("this_is"))
+        config2.__drop__()
 

@@ -10,6 +10,10 @@ logger = logging.getLogger(__name__)
 
 class TestDestinationMap(unittest.TestCase):
 
+    def setUp(self):
+        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap().__drop__()
+
     def test01_shorten(self):
         uri = "http://long.name.com/des/ti/na/tion/path/file.xml"
         new_uri, new_path = DestinationMap.shorten(uri)

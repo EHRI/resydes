@@ -1,8 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, datetime
+import logging, datetime, os.path, inspect
 from resync.client import Client
+from resync.mapper import Map
 from des.config import Config
 
 _instance = None
@@ -49,7 +50,46 @@ class DesClient(Client):
         super().__init__(checksum, verbose, dryrun)
         self.logger = logging.getLogger(__name__)
         self.sync_status = []
+        self.mapper = None
 
+    # def set_mappings(self, uri, destination):
+    #     self.mapper = DesMapper(uri, destination)
+
+    # @property
+    # def sitemap(self):
+    #     """Return the sitemap URI based on maps or explicit settings"""
+    #     if self.mapper is None:
+    #         raise UnboundLocalError("No mappings set.")
+    #     return self.mapper.src_uri
+
+    # Override
+    # def sitemap_uri(self, basename):
+    #     """
+    #     Whatever the super class of this is trying to do in this method, we don't want to end up with uri's like
+    #     http://whatever.com/path/resourcelist.xml/resourcelist.xml
+    #     :param basename:
+    #     :return: The initial uri (i.e. http://whatever.com/path/resourcelist.xml)
+    #     """
+    #     return self.mapper.default_src_uri()
+
+    # # Duck type:
+    # def uri_to_destination(self, uri):
+    #     # uri is  something like 'http://localhost:8000/rs/source/s1/files/resource1.txt'
+    #     # src_uri something like 'http://localhost:8000/rs/source/s1/resourcelist.xml'
+    #     # Destination is                           rs/destination/d1
+    #     # filename should be                       rs/destination/d1/files/resource1.txt'
+    #     raise NotImplementedError
+    #     src_uri = self.mapper.mappings[0].src_uri
+    #     destination = self.mapper.mappings[0].dst_path
+    #
+    #     common_prefix = os.path.commonprefix([src_uri, uri])
+    #     rel_path = os.path.relpath(uri, common_prefix)
+    #     filename = os.path.join(destination, rel_path)
+    #
+    #     self.logger.debug("Duck type: sub called from super and returns '%s'" % filename)
+    #     return filename
+
+    # Override
     def log_status(self, in_sync=None, incremental=False, audit=False,
                    same=None, created=0, updated=0, deleted=0, to_delete=0, exception=None):
         self.sync_status.append(SourceStatus(self.mapper.default_src_uri(), in_sync, incremental, audit, same,
@@ -105,3 +145,78 @@ class SourceStatus(object):
         s += str(self.exception)
         s += "\""
         return s
+
+
+# class DesMapper(object):
+#     """
+#     Replacement of resync.mapper.Mapper
+#     """
+#     def __init__(self, uri, destination):
+#         self.logger = logging.getLogger(__name__)
+#         self.src_uri = uri
+#         self.destination = destination
+#         self.mappings = []
+#         map = Map(uri, destination)
+#         self.mappings.append(map)
+#
+#
+#     def __len__(self):
+#         """Length is number of mappings"""
+#         self.logger.debug("DesMapper.__len__ from [%s:%s]" % (inspect.stack()[1][1], inspect.stack()[1][2]))
+#         return 1
+#
+#     def default_src_uri(self):
+#         """Default src_uri from mapping
+#
+#         This is take just to be the src_uri of the first entry
+#         """
+#         self.logger.debug("DesMapper.default_src_uri from [%s:%s]" % (inspect.stack()[1][1], inspect.stack()[1][2]))
+#         return self.src_uri
+#
+#     def unsafe(self):
+#         """True is one or more mapping is unsafe
+#
+#         See Map.unsafe() for logic. Provide this as a test rather than
+#         building into object creation/parse because it is useful to
+#         allow unsafe mappings in situations where it doesn't matter.
+#         """
+#         self.logger.debug("DesMapper.unseafe from [%s:%s]" % (inspect.stack()[1][1], inspect.stack()[1][2]))
+#         return False
+#
+#     def dst_to_src(self, dst_file):
+#         """Map destination path to source URI"""
+#         self.logger.debug("DesMapper.dst_to_src(%s) from [%s:%s]" % (dst_file, inspect.stack()[1][1], inspect.stack()[1][2]))
+#         # dst_file              rs/destination/d1/files/resource1.txt
+#         # return http:localhost:8000/rs/source/s1/files/resource1.txt
+#
+#         #return self.src_uri  # or ? return "http://localhost:8000/rs/source/s1"
+#         if dst_file.endswith("resource1.txt"):
+#             return "http:localhost:8000/rs/source/s1/files/resource1.txt"
+#         else:
+#             return "http:localhost:8000/rs/source/s1/files/resource2.txt"
+#
+#
+#     def src_to_dst(self, uri):
+#         """Map source URI to destination path"""
+#         self.logger.debug("DesMapper.src_to_dst(%s) from [%s:%s]" % (uri, inspect.stack()[1][1], inspect.stack()[1][2]))
+#
+#         common_prefix = os.path.commonprefix([self.src_uri, uri])
+#         rel_path = os.path.relpath(uri, common_prefix)
+#         filename = os.path.join(self.destination, rel_path)
+#
+#         self.logger.debug("DesMapper returns '%s'" % filename)
+#         return filename
+#
+#     def path_from_uri(self, uri):
+#         """Make a safe path name from uri
+#
+#         In the case that uri is already a local path then the same path
+#         is returned.
+#         """
+#         self.logger.debug("DesMapper.path_from_uri(%s) from [%s:%s]" % (uri, inspect.stack()[1][1], inspect.stack()[1][2]))
+#         raise NotImplementedError
+#
+#     def __repr__(self):
+#         self.logger.debug("DesMapper.__repr__ from [%s:%s]" % (inspect.stack()[1][1], inspect.stack()[1][2]))
+#         return self.src_uri + " >> " + self.destination
+#

@@ -52,12 +52,15 @@ class Config(object):
                     pass
                 else:
                     k, v = line.split("=")
-                    Config.props[k] = v
+                    Config.props[k.strip()] = v.strip()
 
             Config.__get__logger().info("Found %d entries in '%s'" % (len(Config.props), filename))
             cls._instance = super(Config, cls).__new__(cls, *args, **kwargs)
 
         return cls._instance
+
+    def __drop__(self):
+        Config._instance = None
 
     def prop(self, key, default_value=None):
         value = default_value

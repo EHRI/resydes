@@ -8,6 +8,7 @@ import resync
 import des.desclient
 from enum import Enum
 from resync.sitemap import Sitemap
+from resync.client import ClientFatalError
 from des.location_mapper import DestinationMap
 from des.config import Config
 
@@ -172,7 +173,7 @@ class Capaproc(Processor):
         for resource in self.source_document.resources:
             capability = resource.capability
             if capability == CAPA_RESOURCELIST:
-                relisync = Relisync(resource)
+                relisync = Relisync(resource.uri)
                 relisync.process_source()
                 self.exceptions.extend(relisync.exceptions)
             elif capability == CAPA_RESOURCEDUMP:
@@ -192,35 +193,54 @@ class Relisync(object):
     """
     Synchronisation of a resource list. Synchronisation is eventually done with the resync.client.Client
     """
-    def __init__(self, resource):
+    def __init__(self, uri):
         """
         Initialize a Relisync
-        :param resource: a resync.resource_container.ResourceContainer (@!:x(for ducktyping)
+        :param uri: The uri pointing to a resourcelist.xml
         :return: None
         """
         self.logger = logging.getLogger(__name__)
-        self.resource = resource
+        self.uri = uri
 
         self.exceptions = []
+        self.status = Status.init
+
+    def has_exceptions(self):
+        return len(self.exceptions) != 0
 
     def process_source(self):
-        uri = self.resource.uri
         config = Config()
         netloc = config.boolean_prop(Config.key_use_netloc, False)
-        destination = DestinationMap().find_destination(uri, netloc=netloc)
+        destination = DestinationMap().find_destination(self.uri, netloc=netloc)
         if destination is None:
-            self.logger.debug("No destination for %s" % uri)
-            self.exceptions.append("No destination for %s" % uri)
-            return
+            self.logger.debug("No destination for %s" % self.uri)
+            self.exceptions.append("No destination for %s" % self.uri)
+        else:
+            self.__synchronize__(destination)
 
-        # Parameters in the method client.baseline_or_audit
+        self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
+
+    def __synchronize__(self, destination):
+        config = Config()
+        checksum = config.boolean_prop(Config.key_use_checksum, True)
         audit_only = config.boolean_prop(Config.key_audit_only, True)
         allow_deletion = not audit_only
-        dryrun = audit_only
 
         desclient = des.desclient.instance()
-
-
-
+        # we have to strip 'resourcelist.xml' from the uri because of workings of resync.
+        uri = os.path.dirname(self.uri)
+        self.logger.debug("Converted '%s' to '%s'" % (self.uri, uri))
+        try:
+            desclient.set_mappings((uri, destination))
+            desclient.baseline_or_audit(allow_deletion, audit_only)
+        except ClientFatalError as err:
+            self.logger.warn("EXCEPTION while syncing %s" % uri, exc_info=True)
+            desclient.log_status(exception=err)
+            self.exceptions.append(err)
+        finally:
+            # Whether or not the resourcelist just processed had checksums, influences the state of the
+            # class-level property Client.checksum. Make sure it is always set to True before the next
+            # source is processed.
+            desclient.checksum = checksum
 
 

@@ -89,7 +89,7 @@ class Runner(object):
         for map in self.mappings:
             self.logger.info("%s on %s" % (action, map))
             try:
-                map = ("file:///Users/ecco/git/resydes/des/test/rs/source/s1", "/Users/ecco/git/resydes/des/test/rs/destination/d1")
+                map = ("file:///Users/ecco/git/resydes/des/test/rs/source/s1/resourcelist.xml", "/Users/ecco/git/resydes/des/test/rs/destination/d1")
                 desclient.set_mappings(map)
                 #desclient.set_mappings([map])
                 desclient.baseline_or_audit(allow_deletion, audit_only)
@@ -97,7 +97,7 @@ class Runner(object):
                 self.logger.warn("%s-EXCEPTION while syncing %s" % (action, map), exc_info=True)
                 desclient.log_status(exception=err)
             finally:
-                # Whether or not the resourcelist just processed had checksums influences the state of the
+                # Whether or not the resourcelist just processed had checksums, influences the state of the
                 # class-level property Client.checksum. Make sure it is always set to True before the next
                 # source is processed.
                 desclient.checksum = checksum
