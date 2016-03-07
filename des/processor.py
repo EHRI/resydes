@@ -179,7 +179,9 @@ class Capaproc(Processor):
             elif capability == CAPA_RESOURCEDUMP:
                 pass
             elif capability == CAPA_CHANGELIST:
-                pass
+                chanlisync = Chanlisync(resource.uri)
+                chanlisync.process_source()
+                self.exceptions.extend(chanlisync.exceptions)
             elif capability == CAPA_CHANGEDUMP:
                 pass
             else:
@@ -189,14 +191,15 @@ class Capaproc(Processor):
         self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
 
 
-class Relisync(object):
+class Resync(object):
     """
-    Synchronisation of a resource list. Synchronisation is eventually done with the resync.client.Client
+    Synchronisation with the resync.client.Client
     """
     def __init__(self, uri):
         """
-        Initialize a Relisync
-        :param uri: The uri pointing to a resourcelist.xml
+        Initialize a Resync
+        :param uri: The uri pointing to a resource list If the uri ends with something other than
+        'resourcelist.xml' you're in trouble.
         :return: None
         """
         self.logger = logging.getLogger(__name__)
@@ -204,6 +207,10 @@ class Relisync(object):
 
         self.exceptions = []
         self.status = Status.init
+
+    @abc.abstractmethod
+    def do_synchronize(self, desclient, allow_deletion, audit_only):
+        raise NotImplementedError
 
     def has_exceptions(self):
         return len(self.exceptions) != 0
@@ -227,20 +234,54 @@ class Relisync(object):
         allow_deletion = not audit_only
 
         desclient = des.desclient.instance()
-        # we have to strip 'resourcelist.xml' from the uri because of workings of resync.
+        # we have to strip 'resourcelist.xml' etc. from the uri because of workings of resync.
         uri = os.path.dirname(self.uri)
         self.logger.debug("Converted '%s' to '%s'" % (self.uri, uri))
         try:
             desclient.set_mappings((uri, destination))
-            desclient.baseline_or_audit(allow_deletion, audit_only)
+            self.do_synchronize(desclient, allow_deletion, audit_only)
         except ClientFatalError as err:
             self.logger.warn("EXCEPTION while syncing %s" % uri, exc_info=True)
             desclient.log_status(exception=err)
             self.exceptions.append(err)
         finally:
-            # Whether or not the resourcelist just processed had checksums, influences the state of the
-            # class-level property Client.checksum. Make sure it is always set to True before the next
+            # A side effect (or a bug ;) is messing around with the
+            # class-level property Client.checksum. Make sure it is always set to initial value before the next
             # source is processed.
             desclient.checksum = checksum
 
 
+class Relisync(Resync):
+    """
+    Synchronisation of a resource list. Synchronisation is eventually done with the resync.client.Client
+
+    """
+    def __init__(self, uri):
+        """
+        Initialize a Relisync
+        :param uri: The uri pointing to a resource list If the uri ends with something other than
+        'resourcelist.xml' you're in trouble.
+        :return: None
+        """
+        super(Relisync, self).__init__(uri)
+
+    def do_synchronize(self, desclient, allow_deletion, audit_only):
+        desclient.baseline_or_audit(allow_deletion, audit_only)
+
+
+class Chanlisync(Resync):
+    """
+    Synchronisation of a change list. Synchronisation is eventually done with the resync.client.Client
+
+    """
+    def __init__(self, uri):
+        """
+        Initialize a Chanlisync
+        :param uri: The uri pointing to a change list If the uri ends with something other than
+        'changelist.xml' you're in trouble.
+        :return: None
+        """
+        super(Chanlisync, self).__init__(uri)
+
+    def do_synchronize(self, desclient, allow_deletion, audit_only):
+        desclient.incremental(allow_deletion)

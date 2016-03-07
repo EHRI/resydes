@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-import unittest, logging, logging.config, threading, des.desclient, os.path, glob, shutil
-from des.processor import Discoverer, Status, Relisync
+import unittest, logging, logging.config, threading, des.desclient, os.path, glob, shutil, pathlib, datetime
+from des.processor import Discoverer, Status, Relisync, Chanlisync
 from des.config import Config
 from des.location_mapper import DestinationMap
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -11,6 +11,7 @@ from resync.client import Client
 
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
+
 
 def __clear_sources_xml__(src):
         """
@@ -51,10 +52,10 @@ def __create_resourcelist__(src, checksum=True):
                 data.append(os.path.join(root,filename))
 
         paths = ",".join(data)
-        #logger.debug("paths is a string '%s'", paths)
+
         outfile = os.path.join(abs_path, "rs/source", src, "resourcelist.xml")
 
-        # create a resourcelist from the files in test/rs/files
+        # create a resourcelist from the files in test/rs/source/{src}/files
         client = Client(checksum=checksum)
         prefix = "http://localhost:8000/rs/source/" + src + "/files"
         resourcedir = os.path.join(abs_path, "rs/source", src, "files")
@@ -62,6 +63,67 @@ def __create_resourcelist__(src, checksum=True):
 
         client.set_mappings(args)
         client.write_resource_list(paths, outfile)
+
+
+def __create_changelist__(src, checksum=True):
+        """
+        Create a changelist xml for the source denominated by src.
+        :param src: 's1', 's2' etc.
+        :param checksum: should checksums be added to the xml.
+        :return: None
+        """
+        abs_path = os.path.dirname(os.path.abspath(__name__))
+        data = []
+        path = os.path.join(abs_path, "rs/source", src, "files")
+        for root, directories, filenames in os.walk(path):
+            for filename in filenames:
+                data.append(os.path.join(root,filename))
+
+        paths = ",".join(data)
+
+        outfile = os.path.join(abs_path, "rs/source", src, "changelist.xml")
+        ref_sitemap = pathlib.Path(os.path.join(abs_path, "rs/source", src, "resourcelist.xml")).as_uri()
+
+        # create a changelist from the files in test/rs/source/{src}/files based on ^that
+        client = Client(checksum=checksum)
+        prefix = "http://localhost:8000/rs/source/" + src + "/files"
+        resourcedir = os.path.join(abs_path, "rs/source", src, "files")
+        args = [prefix, resourcedir]
+
+        client.set_mappings(args)
+        client.write_change_list(paths=paths, outfile=outfile, ref_sitemap=ref_sitemap)
+
+
+def __change_resource__(src, resource):
+        """
+        Change a resource
+        :param src: 's1', 's2' etc.
+        :param resource: filename, i.e. 'resource1.txt', 'resource2.txt' etc.
+        :return:
+        """
+        abs_path = os.path.dirname(os.path.abspath(__name__))
+        filename = os.path.join(abs_path, "rs/source", src, "files", resource)
+        with open(filename, "a") as file:
+            file.write("\n%s" % str(datetime.datetime.now()))
+
+
+def __add_resource__(src, resource):
+        abs_path = os.path.dirname(os.path.abspath(__name__))
+        filename = os.path.join(abs_path, "rs/source", src, "files", resource)
+        with open(filename, "w") as file:
+            file.write("\n%s" % str(datetime.datetime.now()))
+
+
+def __delete_resource__(src, resource):
+        """
+        Delete a resource
+        :param src: 's1', 's2' etc.
+        :param resource: filename, i.e. 'resource1.txt', 'resource2.txt' etc.
+        :return:
+        """
+        abs_path = os.path.dirname(os.path.abspath(__name__))
+        filename = os.path.join(abs_path, "rs/source", src, "files", resource)
+        os.remove(filename)
 
 
 class TestDiscoverer(unittest.TestCase):
@@ -319,3 +381,145 @@ class TestRelisync(unittest.TestCase):
 
         desclient.sync_status_to_file("logs/baseline-netloc.csv")
 
+
+class TestChanlisync(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.__start_http_server__()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.__close_http_server__()
+
+    @classmethod
+    def __start_http_server__(cls):
+        server_address = ('', 8000)
+        handler_class = SimpleHTTPRequestHandler
+        cls.server = HTTPServer(server_address, handler_class)
+        t = threading.Thread(target=cls.server.serve_forever)
+        t.daemon = True
+        logger.debug("Starting server at http://localhost:8000/")
+        t.start()
+
+    @classmethod
+    def __close_http_server__(cls):
+        logger.debug("Closing server at http://localhost:8000/")
+        cls.server.server_close()
+
+    def setUp(self):
+        Config._set_config_filename("test-files/config.txt")
+        Config().__drop__()
+        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap().__drop__()
+        des.desclient.reset_instance()
+
+    def test_01_no_change(self):
+        Config().__set_prop__(Config.key_use_netloc, "False")
+        Config().__set_prop__(Config.key_audit_only, "False")
+        DestinationMap().__set_destination__("http://localhost:8000/rs/source/s1", "rs/destination/d1")
+
+        __clear_destination__("d1")
+        __clear_sources_xml__("s1")
+        __create_resourcelist__("s1")
+
+        logger.debug("\n=========== create ==============\n")
+        relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
+        relisync.process_source()
+        self.assertEqual(0, len(relisync.exceptions))
+        self.assertEqual(Status.processed, relisync.status)
+
+        __create_changelist__("s1")
+
+        logger.debug("\n=========== no change ==============\n")
+        chanlisync = Chanlisync("http://localhost:8000/rs/source/s1/changelist.xml")
+        chanlisync.process_source()
+
+        self.assertEqual(0, len(chanlisync.exceptions))
+        self.assertEqual(Status.processed, chanlisync.status)
+        desclient = des.desclient.instance()
+        self.assertEqual(3, len(desclient.sync_status))
+        #self.assertEqual(2, desclient.sync_status[2].same)
+        self.assertIsNone(desclient.sync_status[2].same)
+        self.assertEqual(0, desclient.sync_status[2].created)
+        self.assertEqual(0, desclient.sync_status[2].updated)
+        self.assertEqual(0, desclient.sync_status[2].deleted)
+        self.assertEqual(0, desclient.sync_status[2].to_delete)
+        self.assertIsNone(desclient.sync_status[2].exception)
+
+        desclient.sync_status_to_file("logs/incremental.csv")
+
+    def test_02_change(self):
+        Config().__set_prop__(Config.key_use_netloc, "False")
+        Config().__set_prop__(Config.key_audit_only, "False")
+        DestinationMap().__set_destination__("http://localhost:8000/rs/source/s1", "rs/destination/d1")
+
+        __clear_destination__("d1")
+        __clear_sources_xml__("s1")
+        __create_resourcelist__("s1")
+
+        logger.debug("\n=========== create ==============\n")
+        relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
+        relisync.process_source()
+        self.assertEqual(0, len(relisync.exceptions))
+        self.assertEqual(Status.processed, relisync.status)
+
+        __change_resource__("s1", "resource1.txt")
+        __create_changelist__("s1")
+
+        logger.debug("\n=========== change ==============\n")
+        chanlisync = Chanlisync("http://localhost:8000/rs/source/s1/changelist.xml")
+        chanlisync.process_source()
+
+        self.assertEqual(0, len(chanlisync.exceptions))
+        self.assertEqual(Status.processed, chanlisync.status)
+        desclient = des.desclient.instance()
+        self.assertEqual(4, len(desclient.sync_status))
+        #self.assertEqual(1, desclient.sync_status[3].same)
+        self.assertIsNone(desclient.sync_status[3].same)
+        self.assertEqual(0, desclient.sync_status[3].created)
+        self.assertEqual(1, desclient.sync_status[3].updated)
+        self.assertEqual(0, desclient.sync_status[3].deleted)
+        self.assertEqual(0, desclient.sync_status[3].to_delete)
+        self.assertIsNone(desclient.sync_status[3].exception)
+
+        desclient.sync_status_to_file("logs/incremental-change.csv")
+
+    def test_03_change_delete(self):
+        Config().__set_prop__(Config.key_use_netloc, "False")
+        Config().__set_prop__(Config.key_audit_only, "False")
+        DestinationMap().__set_destination__("http://localhost:8000/rs/source/s1", "rs/destination/d1")
+
+        __clear_destination__("d1")
+        __clear_sources_xml__("s1")
+        __add_resource__("s1", "added.txt")
+        __create_resourcelist__("s1")
+
+        logger.debug("\n=========== create ==============\n")
+        relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
+        relisync.process_source()
+        self.assertEqual(0, len(relisync.exceptions))
+        self.assertEqual(Status.processed, relisync.status)
+
+        __change_resource__("s1", "resource2.txt")
+        __delete_resource__("s1", "added.txt")
+        __create_changelist__("s1")
+
+        logger.debug("\n=========== change + delete ==============\n")
+        chanlisync = Chanlisync("http://localhost:8000/rs/source/s1/changelist.xml")
+        chanlisync.process_source()
+
+        self.assertEqual(0, len(chanlisync.exceptions))
+        self.assertEqual(Status.processed, chanlisync.status)
+
+        desclient = des.desclient.instance()
+        self.assertEqual(4, len(desclient.sync_status))
+        #self.assertEqual(1, desclient.sync_status[3].same)
+        self.assertIsNone(desclient.sync_status[3].same)
+        self.assertEqual(0, desclient.sync_status[3].created)
+        self.assertEqual(1, desclient.sync_status[3].updated)
+        self.assertEqual(1, desclient.sync_status[3].deleted)
+        self.assertEqual(1, desclient.sync_status[3].to_delete)
+        self.assertIsNone(desclient.sync_status[3].exception)
+
+        desclient.sync_status_to_file("logs/incremental-change-delete.csv")
