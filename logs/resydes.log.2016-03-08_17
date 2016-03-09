@@ -1,4 +1,0 @@
-2016-03-08 17:27:27,920 - INFO     Starting Runner from 'conf/config.txt' [runner.py:28]
-2016-03-08 17:27:27,921 - INFO     Configured logging from 'conf/logging.conf' [runner.py:29]
-2016-03-08 17:27:27,921 - INFO     Setting map_filename to 'desmap.txt' [location_mapper.py:22]
-2016-03-08 17:27:27,922 - INFO     Creating DestinationMap._instance from 'desmap.txt' [location_mapper.py:50]
