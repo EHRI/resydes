@@ -15,6 +15,8 @@ class Config(object):
     key_use_netloc = "use_netloc"
     key_use_checksum = "use_checksum"
     key_audit_only = "audit_only"
+    key_sync_status_report_file = "sync_status_report_file"
+    key_sync_pause = "sync_pause"
 
     @staticmethod
     def __get__logger():
@@ -74,6 +76,12 @@ class Config(object):
     def boolean_prop(self, key, default_value=False):
         value = self.prop(key, str(default_value))
         return "True" == value
+
+    def int_prop(self, key, default_value=0):
+        value = self.prop(key, str(default_value))
+        if value is None:
+            return value
+        return int(value)
 
     def __set_prop__(self, key, value):
         self.props[key] = value

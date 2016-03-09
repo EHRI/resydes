@@ -90,6 +90,7 @@ class DesClient(Client):
     #     return filename
 
     # Override
+    # @ToDo make Reporter, a singleton independent from this class, and report from everywhere.
     def log_status(self, in_sync=None, incremental=False, audit=False,
                    same=None, created=0, updated=0, deleted=0, to_delete=0, exception=None):
         self.sync_status.append(SourceStatus(self.mapper.default_src_uri(), in_sync, incremental, audit, same,

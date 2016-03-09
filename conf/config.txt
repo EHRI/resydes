@@ -1,0 +1,21 @@
+# Logging configuration by file. See example logging.conf in root directory.
+logging_configuration_file=conf/logging.conf
+
+# The file that contains the mapping between remote sources and local destination folders.
+location_mapper_destination_file=conf/desmap.txt
+
+# Should we use the netloc part of uri's in case no destination folder is found for a source?
+use_netloc=False
+
+# Should we use checksums in sitemaps and during verification?
+use_checksum=True
+
+# Should we do an audit only or synchronize as well?
+audit_only = False
+
+# Where should we write the sync status report?
+sync_status_report_file=logs/sync_status.csv
+
+# How long should we wait between sync-rounds? unit is seconds.
+sync_pause=10
+

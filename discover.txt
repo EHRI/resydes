@@ -1,0 +1,9 @@
+# list of url's to discover
+bla
+http://localhost:8000/srv/source1/loc1
+http://localhost:8000/srv/source1/loc2
+http://localhost:8000/srv/source2
+http://localhost:8000/srv/source3
+http://localhost:8000/srv/source4/loc1
+http://localhost:8000/srv/source4/loc2
+http://localhost:8000/srv/source5

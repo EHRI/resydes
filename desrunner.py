@@ -1,0 +1,130 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# 1. Baseline synchronization
+# 2. Incremental synchronization
+# 3. Audit
+#
+
+import sys, argparse, os.path, logging, logging.config, time
+try:
+    sys.path.insert(0, "../resync")
+except:
+    pass
+
+import des.desclient
+from des.config import Config
+from des.location_mapper import DestinationMap
+from des.processor import Discoverer, Capaproc
+
+
+class DesRunner(object):
+
+    def __init__(self, config_filename="conf/config.txt"):
+        '''
+        Create a Runner using the configuration file denoted by config_filename.
+        :param config_filename:
+        :return: None
+        '''
+        try:
+            Config._set_config_filename(config_filename)
+            config = Config()
+
+        except FileNotFoundError as err:
+            print(err)
+            raise err
+
+        logging_configuration_file = config.prop(Config.key_logging_configuration_file, "conf/logging.conf")
+        # logging.config.fileConfig raises "KeyError: 'formatters'" if the configuration file does not exist.
+        # A FileNotFoundError in this case is less confusing.
+        if not os.path.isfile(logging_configuration_file):
+            # It seems there is no default logging configuration to the console in Python?
+            # In that case we'll call it a day.
+            raise FileNotFoundError("Logging configuration file not found: " + logging_configuration_file)
+
+        logging.config.fileConfig(logging_configuration_file)
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Starting %s from '%s'" % (self.__class__.__name__, config_filename))
+        self.logger.info("Configured logging from '%s'" % logging_configuration_file)
+
+        self.sources = None
+        self.exceptions = []
+
+    def run(self, sources="sources.txt", task="discover", once=False):
+        condition = True
+        while condition:
+            # list of urls
+            self.logger.info("Reading source urls from '%s'" % sources)
+            self.read_sources(sources)
+            # reset url --> destination map
+            DestinationMap._set_map_filename(Config().prop(Config.key_location_mapper_destination_file, "conf/desmap.txt"))
+            DestinationMap().__drop__()
+            # do all the urls
+            self.do_task(task)
+            # report
+            self.do_report(task)
+
+            condition = not (once or self.stop())
+            if (condition and not once):
+                pause = Config().int_prop(Config.key_sync_pause)
+                self.logger.info("Going to sleep for %d seconds." % pause)
+                time.sleep(pause)
+            # repeat
+            condition = not (once or self.stop())
+
+    def read_sources(self, sources):
+        with open(sources) as f:
+            lines = f.read().splitlines()
+        self.sources = []
+        for line in lines:
+            if line.strip() == "" or line.startswith("#"):
+                pass
+            else:
+                self.sources.append(line)
+        self.logger.info("Got %d source urls from '%s'" % (len(self.sources), sources))
+
+    def do_task(self, task):
+        for uri in self.sources:
+            processor = None
+            if task == "discover":
+                processor = Discoverer(uri)
+            elif task == "capability":
+                processor = Capaproc(uri)
+
+            try:
+                processor.process_source()
+                self.exceptions.extend(processor.exceptions)
+                # do something with processor status
+            except Exception as err:
+                self.exceptions.append(err)
+                self.logger.warn("Failure while syncing %s" % uri, exc_info=True)
+
+    def do_report(self, task):
+        desclient = des.desclient.instance()
+        desclient.sync_status_to_file(Config().prop(Config.key_sync_status_report_file, "sync_status.csv"))
+        # reset used client
+        des.desclient.reset_instance()
+        self.logger.info("Ran %s with %d exceptions" % (task, len(self.exceptions)))
+        self.exceptions = []
+
+    def stop(self):
+        return os.path.isfile("stop")
+
+
+if __name__ == '__main__':
+    # Run a DesRunner instance
+    task_choices = ['discover', 'capability']
+
+    parser = argparse.ArgumentParser(description="Run a ResourceSync Destination.",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("sources", help="the name of the file with source urls")
+    parser.add_argument("-c", "--config", help="the configuration filename", default="conf/config.txt", metavar="")
+    parser.add_argument("-t", "--task", help="the task that should be run. " + str(task_choices), default="discover",
+                        choices=task_choices, metavar="")
+    parser.add_argument("-o", "--once", help="explore source urls once and exit", action="store_true")
+
+    args = parser.parse_args()
+
+    runner = DesRunner(config_filename=args.config)
+    runner.run(args.sources, args.task, args.once)
+

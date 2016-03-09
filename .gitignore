@@ -64,6 +64,7 @@ target/
 resync
 venv/
 */**/logs/resy*
+*/**/logs/sync*
 */**/.resync-client-status.cfg
 */**/audit*.csv
 */**/baseline*.csv
