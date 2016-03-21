@@ -73,4 +73,5 @@ venv/
 */**/resourcelist.xml
 des/test/rs/destination/d1/files/
 des/test/rs/destination/d2/files/
+.resync-client-status.cfg
 
