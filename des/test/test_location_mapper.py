@@ -85,38 +85,42 @@ class TestDestinationMap(unittest.TestCase):
         desmap = DestinationMap()
 
         uri = "http://long.name.com/path/to/resource.xml"
-        self.assertEqual("destination1", desmap.find_destination(uri))
+        self.assertEqual("./destination1", desmap.find_destination(uri))
 
         uri = "http://long.name.com/path/to/"
-        self.assertEqual("destination1", desmap.find_destination(uri))
+        self.assertEqual("./destination1", desmap.find_destination(uri))
 
         uri = "http://long.name.com/"
-        self.assertEqual("destination1", desmap.find_destination(uri))
+        self.assertEqual("./destination1", desmap.find_destination(uri))
 
         uri = "http://long.name.com"
-        self.assertEqual("destination1", desmap.find_destination(uri))
+        self.assertEqual("./destination1", desmap.find_destination(uri))
 
         #
         uri = "https://first.com:8080/path1"
         self.assertIsNone(desmap.find_destination(uri))
 
         uri = "https://first.com:8080/path1/to/resource.xml"
-        self.assertEqual("destination2", desmap.find_destination(uri))
+        self.assertEqual("./destination2", desmap.find_destination(uri))
 
         uri = "https://first.com:8080/path2/"
-        self.assertEqual("destination3", desmap.find_destination(uri))
+        self.assertEqual("./destination3", desmap.find_destination(uri))
 
         uri = "https://first.com:8080/path2"
-        self.assertEqual("destination3", desmap.find_destination(uri))
+        self.assertEqual("./destination3", desmap.find_destination(uri))
 
         #
         uri = "https://not.mapped.com/resource.xml"
-        self.assertEqual("default/path", desmap.find_destination(uri, "default/path"))
+        self.assertEqual("./default/path", desmap.find_destination(uri, "default/path"))
 
         #
         uri = "https://not.mapped.com/resource.xml"
-        self.assertEqual("not.mapped.com", desmap.find_destination(uri, netloc=True))
+        self.assertEqual("./not.mapped.com", desmap.find_destination(uri, netloc=True))
 
+        desmap.set_root_folder("foo/bar")
+
+        uri = "http://long.name.com/path/to/resource.xml"
+        self.assertEqual("foo/bar/destination1", desmap.find_destination(uri))
 
 
 

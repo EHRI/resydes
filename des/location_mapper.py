@@ -1,15 +1,15 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, os.path
+import logging, os.path, inspect
 from urllib.parse import urlparse, urlunparse
 
-MAP_FILENAME = "desmap.txt"
+DEFAULT_MAP_FILENAME = "desmap.txt"
 
 
 class DestinationMap(object):
 
-    _map_filename = MAP_FILENAME
+    _map_filename = DEFAULT_MAP_FILENAME
 
     @staticmethod
     def __get__logger():
@@ -28,7 +28,7 @@ class DestinationMap(object):
     @staticmethod
     def _get_map_filename():
         if not DestinationMap._map_filename:
-            DestinationMap._set_map_filename(MAP_FILENAME)
+            DestinationMap._set_map_filename(DEFAULT_MAP_FILENAME)
 
         return DestinationMap._map_filename
 
@@ -59,13 +59,22 @@ class DestinationMap(object):
                     k, v = line.split("=")
                     DestinationMap.mappings[k] = v
 
+            cls.root_folder = "." # default
             DestinationMap.__get__logger().info("Found %d entries in '%s'" % (len(DestinationMap.mappings), filename))
             cls._instance = super(DestinationMap, cls).__new__(cls, *args, **kwargs)
 
         return cls._instance
 
     def __drop__(self):
+        DestinationMap.__get__logger().debug("__drop__ %s called from [%s:%s]"
+                    % (self.__class__.__name__, inspect.stack()[1][1], inspect.stack()[1][2]))
         DestinationMap._instance = None
+
+    def set_root_folder(self, root_folder=None):
+        if root_folder is None:
+            self.root_folder = "."
+        else:
+            self.root_folder = root_folder
 
     def find_destination(self, uri, default_destination=None, netloc=False):
         s_uri = uri
@@ -85,6 +94,9 @@ class DestinationMap(object):
 
         if destination is None and netloc:
             destination = urlparse(uri).netloc
+
+        if destination is not None and not os.path.isabs(destination):
+            destination = os.path.join(self.root_folder, destination)
 
         return destination
 

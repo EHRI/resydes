@@ -5,7 +5,7 @@ import logging
 import requests, urllib.parse, xml, abc, os.path
 import xml.etree.ElementTree as ET
 import resync
-import des.desclient
+import des.desclient, des.reporter
 from enum import Enum
 from resync.sitemap import Sitemap
 from resync.client import ClientFatalError
@@ -84,21 +84,25 @@ class Processor(object):
             self.logger.debug("%s No connection: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
             self.exceptions.append(err)
+            des.reporter.instance().log_status(self.source_uri, exception=err)
 
         except xml.etree.ElementTree.ParseError as err:
             self.logger.debug("%s ParseError: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
             self.exceptions.append(err)
+            des.reporter.instance().log_status(self.source_uri, exception=err)
 
         except resync.sitemap.SitemapParseError as err:
             self.logger.debug("%s Unreadable source: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
             self.exceptions.append(err)
+            des.reporter.instance().log_status(self.source_uri, exception=err)
 
         except AssertionError as err:
             self.logger.debug("%s Error: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
             self.exceptions.append(err)
+            des.reporter.instance().log_status(self.source_uri, exception=err)
 
         finally:
             session.close()
@@ -222,6 +226,8 @@ class Resync(object):
         if destination is None:
             self.logger.debug("No destination for %s" % self.uri)
             self.exceptions.append("No destination for %s" % self.uri)
+            des.reporter.instance().log_status(self.uri,
+                exception="No destination specified and use of net location prohibited.")
         else:
             self.__synchronize__(destination)
 

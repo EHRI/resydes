@@ -4,6 +4,9 @@ logging_configuration_file=conf/logging.conf
 # The file that contains the mapping between remote sources and local destination folders.
 location_mapper_destination_file=conf/desmap.txt
 
+# The root folder for local destination folders
+destination_root=/tmp/destination
+
 # Should we use the netloc part of uri's in case no destination folder is found for a source?
 use_netloc=False
 

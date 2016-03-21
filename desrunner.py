@@ -12,7 +12,7 @@ try:
 except:
     pass
 
-import des.desclient
+import des.reporter
 from des.config import Config
 from des.location_mapper import DestinationMap
 from des.processor import Discoverer, Capaproc
@@ -44,33 +44,41 @@ class DesRunner(object):
 
         logging.config.fileConfig(logging_configuration_file)
         self.logger = logging.getLogger(__name__)
-        self.logger.info("Starting %s from '%s'" % (self.__class__.__name__, config_filename))
-        self.logger.info("Configured logging from '%s'" % logging_configuration_file)
 
+        self.pid = os.getpid()
         self.sources = None
         self.exceptions = []
 
-    def run(self, sources="sources.txt", task="discover", once=False):
+        self.logger.info("Started %s with pid %d" % (__file__, self.pid))
+        self.logger.info("Configured %s from '%s'" % (self.__class__.__name__, config_filename))
+        self.logger.info("Configured logging from '%s'" % logging_configuration_file)
+
+    def run(self, sources, task="discover", once=False):
         condition = True
         while condition:
             # list of urls
             self.logger.info("Reading source urls from '%s'" % sources)
             self.read_sources(sources)
-            # reset url --> destination map
-            DestinationMap._set_map_filename(Config().prop(Config.key_location_mapper_destination_file, "conf/desmap.txt"))
+            # reset url --> destination map. New mappings may be configured
+            DestinationMap._set_map_filename(Config().
+                                             prop(Config.key_location_mapper_destination_file, "conf/desmap.txt"))
+            # drop to force fresh read from file
             DestinationMap().__drop__()
+            # Set the root of the destination folder if configured
+            DestinationMap().set_root_folder(Config().prop(Config.key_destination_root))
             # do all the urls
             self.do_task(task)
             # report
             self.do_report(task)
-
+            # to continue or not to continue
             condition = not (once or self.stop())
-            if (condition and not once):
+            if condition:
                 pause = Config().int_prop(Config.key_sync_pause)
                 self.logger.info("Going to sleep for %d seconds." % pause)
+                self.logger.info("command line: 'touch stop' to stop this process with pid %d." % self.pid)
                 time.sleep(pause)
-            # repeat
-            condition = not (once or self.stop())
+                # repeat after sleep
+                condition = not (once or self.stop())
 
     def read_sources(self, sources):
         with open(sources) as f:
@@ -98,17 +106,22 @@ class DesRunner(object):
             except Exception as err:
                 self.exceptions.append(err)
                 self.logger.warn("Failure while syncing %s" % uri, exc_info=True)
+                des.reporter.instance().log_status(uri, exception=err)
 
     def do_report(self, task):
-        desclient = des.desclient.instance()
-        desclient.sync_status_to_file(Config().prop(Config.key_sync_status_report_file, "sync_status.csv"))
-        # reset used client
-        des.desclient.reset_instance()
-        self.logger.info("Ran %s with %d exceptions" % (task, len(self.exceptions)))
+        reporter = des.reporter.instance()
+        reporter.sync_status_to_file()
+        # reset used reporter
+        des.reporter.reset_instance()
+        self.logger.info("Ran %s over %d sources with %d exceptions" % (task, len(self.sources), len(self.exceptions)))
         self.exceptions = []
 
     def stop(self):
-        return os.path.isfile("stop")
+        stop = os.path.isfile("stop")
+        if stop:
+            self.logger.info("Stopping %s because found file named 'stop'" % self.__class__.__name__)
+
+        return stop
 
 
 if __name__ == '__main__':

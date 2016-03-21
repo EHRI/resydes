@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-import unittest, logging, logging.config, threading, des.desclient, os.path, glob, shutil, pathlib, datetime
+import unittest, logging, logging.config, threading, os.path, glob, shutil, pathlib, datetime
+import des.reporter
 from des.processor import Discoverer, Status, Relisync, Chanlisync
 from des.config import Config
 from des.location_mapper import DestinationMap
@@ -235,6 +236,7 @@ class TestRelisync(unittest.TestCase):
     def test01_no_destination_no_connection(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
         DestinationMap().__remove_destination__("http://bla.com")
+        des.reporter.reset_instance()
 
         logger.debug("\n============ no destination =============\n")
         # returns at no destination
@@ -252,9 +254,9 @@ class TestRelisync(unittest.TestCase):
         relisync.process_source()
         self.assertEqual(1, len(relisync.exceptions))
         self.assertEqual(Status.processed_with_exceptions, relisync.status)
-        desclient = des.desclient.instance()
-        self.assertEqual(1, len(desclient.sync_status))
-        self.assertIsNotNone(desclient.sync_status[0].exception)
+        reporter = des.reporter.instance()
+        self.assertEqual(2, len(reporter.sync_status))
+        self.assertIsNotNone(reporter.sync_status[0].exception)
 
         # using net location 'bla.com' as destination, still no connection
         Config().__set_prop__(Config.key_use_netloc, "True")
@@ -264,8 +266,8 @@ class TestRelisync(unittest.TestCase):
         relisync.process_source()
         self.assertEqual(1, len(relisync.exceptions))
         self.assertEqual(Status.processed_with_exceptions, relisync.status)
-        self.assertEqual(2, len(desclient.sync_status))
-        self.assertIsNotNone(desclient.sync_status[1].exception)
+        self.assertEqual(3, len(reporter.sync_status))
+        self.assertIsNotNone(reporter.sync_status[1].exception)
 
     def test02_process_audit(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
@@ -275,6 +277,7 @@ class TestRelisync(unittest.TestCase):
         __clear_destination__("d1")
         __clear_sources_xml__("s1")
         __create_resourcelist__("s1")
+        des.reporter.reset_instance()
 
         logger.debug("\n=========================\n")
         relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
@@ -282,10 +285,10 @@ class TestRelisync(unittest.TestCase):
 
         self.assertEqual(0, len(relisync.exceptions))
         self.assertEqual(Status.processed, relisync.status)
-        desclient = des.desclient.instance()
-        self.assertEqual(1, len(desclient.sync_status))
+        reporter = des.reporter.instance()
+        self.assertEqual(1, len(reporter.sync_status))
 
-        desclient.sync_status_to_file("logs/audit.csv")
+        reporter.sync_status_to_file("logs/audit.csv")
 
     def test03_process_baseline(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
@@ -295,6 +298,7 @@ class TestRelisync(unittest.TestCase):
         __clear_destination__("d1")
         __clear_sources_xml__("s1")
         __create_resourcelist__("s1")
+        des.reporter.reset_instance()
 
         logger.debug("\n=========== create ==============\n")
         relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
@@ -302,16 +306,16 @@ class TestRelisync(unittest.TestCase):
 
         self.assertEqual(0, len(relisync.exceptions))
         self.assertEqual(Status.processed, relisync.status)
-        desclient = des.desclient.instance()
+        reporter = des.reporter.instance()
         # sync_status count: 1 for audit, 1 for create. expected 2
-        self.assertEqual(2, len(desclient.sync_status))
-        self.assertEqual(0, desclient.sync_status[0].same)
-        self.assertEqual(2, desclient.sync_status[0].created)
-        self.assertEqual(0, desclient.sync_status[0].updated)
-        self.assertEqual(0, desclient.sync_status[0].deleted)
-        self.assertEqual(0, desclient.sync_status[0].to_delete)
-        self.assertIsNone(desclient.sync_status[0].exception)
-        #desclient.sync_status_to_file("logs/baseline.csv")
+        self.assertEqual(2, len(reporter.sync_status))
+        self.assertEqual(0, reporter.sync_status[0].same)
+        self.assertEqual(2, reporter.sync_status[0].created)
+        self.assertEqual(0, reporter.sync_status[0].updated)
+        self.assertEqual(0, reporter.sync_status[0].deleted)
+        self.assertEqual(0, reporter.sync_status[0].to_delete)
+        self.assertIsNone(reporter.sync_status[0].exception)
+        #reporter.sync_status_to_file("logs/baseline.csv")
 
         logger.debug("\n============ update =============\n")
         relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
@@ -319,15 +323,15 @@ class TestRelisync(unittest.TestCase):
 
         self.assertEqual(0, len(relisync.exceptions))
         self.assertEqual(Status.processed, relisync.status)
-        desclient = des.desclient.instance()
+        reporter = des.reporter.instance()
         # sync_status count: 1 for audit, 1 for create (both from previous run), 1 for audit, no update. expected 3
-        self.assertEqual(3, len(desclient.sync_status))
-        self.assertEqual(2, desclient.sync_status[2].same)
-        self.assertEqual(0, desclient.sync_status[2].created)
-        self.assertEqual(0, desclient.sync_status[2].updated)
-        self.assertEqual(0, desclient.sync_status[2].deleted)
-        self.assertEqual(0, desclient.sync_status[2].to_delete)
-        self.assertIsNone(desclient.sync_status[2].exception)
+        self.assertEqual(3, len(reporter.sync_status))
+        self.assertEqual(2, reporter.sync_status[2].same)
+        self.assertEqual(0, reporter.sync_status[2].created)
+        self.assertEqual(0, reporter.sync_status[2].updated)
+        self.assertEqual(0, reporter.sync_status[2].deleted)
+        self.assertEqual(0, reporter.sync_status[2].to_delete)
+        self.assertIsNone(reporter.sync_status[2].exception)
 
     def test04_process_baseline_netloc(self):
         Config().__set_prop__(Config.key_use_netloc, "True")
@@ -349,11 +353,11 @@ class TestRelisync(unittest.TestCase):
 
         self.assertEqual(0, len(relisync.exceptions))
         self.assertEqual(Status.processed, relisync.status)
-        desclient = des.desclient.instance()
+        reporter = des.reporter.instance()
         # depends on whether test is run individually or in group
-        #self.assertEqual(expected_sync_status_count, len(desclient.sync_status))
+        #self.assertEqual(expected_sync_status_count, len(reporter.sync_status))
 
-        desclient.sync_status_to_file("logs/baseline-netloc.csv")
+        reporter.sync_status_to_file("logs/baseline-netloc.csv")
 
 
 class TestChanlisync(unittest.TestCase):
@@ -363,7 +367,7 @@ class TestChanlisync(unittest.TestCase):
         Config().__drop__()
         DestinationMap._set_map_filename("test-files/desmap.txt")
         DestinationMap().__drop__()
-        des.desclient.reset_instance()
+        des.reporter.reset_instance()
 
     def test_01_no_change(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
@@ -388,17 +392,17 @@ class TestChanlisync(unittest.TestCase):
 
         self.assertEqual(0, len(chanlisync.exceptions))
         self.assertEqual(Status.processed, chanlisync.status)
-        desclient = des.desclient.instance()
-        self.assertEqual(3, len(desclient.sync_status))
-        #self.assertEqual(2, desclient.sync_status[2].same)
-        self.assertIsNone(desclient.sync_status[2].same)
-        self.assertEqual(0, desclient.sync_status[2].created)
-        self.assertEqual(0, desclient.sync_status[2].updated)
-        self.assertEqual(0, desclient.sync_status[2].deleted)
-        self.assertEqual(0, desclient.sync_status[2].to_delete)
-        self.assertIsNone(desclient.sync_status[2].exception)
+        reporter = des.reporter.instance()
+        self.assertEqual(3, len(reporter.sync_status))
+        #self.assertEqual(2, reporter.sync_status[2].same)
+        self.assertIsNone(reporter.sync_status[2].same)
+        self.assertEqual(0, reporter.sync_status[2].created)
+        self.assertEqual(0, reporter.sync_status[2].updated)
+        self.assertEqual(0, reporter.sync_status[2].deleted)
+        self.assertEqual(0, reporter.sync_status[2].to_delete)
+        self.assertIsNone(reporter.sync_status[2].exception)
 
-        desclient.sync_status_to_file("logs/incremental.csv")
+        reporter.sync_status_to_file("logs/incremental.csv")
 
     def test_02_change(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
@@ -424,17 +428,17 @@ class TestChanlisync(unittest.TestCase):
 
         self.assertEqual(0, len(chanlisync.exceptions))
         self.assertEqual(Status.processed, chanlisync.status)
-        desclient = des.desclient.instance()
-        self.assertEqual(4, len(desclient.sync_status))
-        #self.assertEqual(1, desclient.sync_status[3].same)
-        self.assertIsNone(desclient.sync_status[3].same)
-        self.assertEqual(0, desclient.sync_status[3].created)
-        self.assertEqual(1, desclient.sync_status[3].updated)
-        self.assertEqual(0, desclient.sync_status[3].deleted)
-        self.assertEqual(0, desclient.sync_status[3].to_delete)
-        self.assertIsNone(desclient.sync_status[3].exception)
+        reporter = des.reporter.instance()
+        self.assertEqual(4, len(reporter.sync_status))
+        #self.assertEqual(1, reporter.sync_status[3].same)
+        self.assertIsNone(reporter.sync_status[3].same)
+        self.assertEqual(0, reporter.sync_status[3].created)
+        self.assertEqual(1, reporter.sync_status[3].updated)
+        self.assertEqual(0, reporter.sync_status[3].deleted)
+        self.assertEqual(0, reporter.sync_status[3].to_delete)
+        self.assertIsNone(reporter.sync_status[3].exception)
 
-        desclient.sync_status_to_file("logs/incremental-change.csv")
+        reporter.sync_status_to_file("logs/incremental-change.csv")
 
     def test_03_change_delete(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
@@ -463,14 +467,14 @@ class TestChanlisync(unittest.TestCase):
         self.assertEqual(0, len(chanlisync.exceptions))
         self.assertEqual(Status.processed, chanlisync.status)
 
-        desclient = des.desclient.instance()
-        self.assertEqual(4, len(desclient.sync_status))
-        #self.assertEqual(1, desclient.sync_status[3].same)
-        self.assertIsNone(desclient.sync_status[3].same)
-        self.assertEqual(0, desclient.sync_status[3].created)
-        self.assertEqual(1, desclient.sync_status[3].updated)
-        self.assertEqual(1, desclient.sync_status[3].deleted)
-        self.assertEqual(1, desclient.sync_status[3].to_delete)
-        self.assertIsNone(desclient.sync_status[3].exception)
+        reporter = des.reporter.instance()
+        self.assertEqual(4, len(reporter.sync_status))
+        #self.assertEqual(1, reporter.sync_status[3].same)
+        self.assertIsNone(reporter.sync_status[3].same)
+        self.assertEqual(0, reporter.sync_status[3].created)
+        self.assertEqual(1, reporter.sync_status[3].updated)
+        self.assertEqual(1, reporter.sync_status[3].deleted)
+        self.assertEqual(1, reporter.sync_status[3].to_delete)
+        self.assertIsNone(reporter.sync_status[3].exception)
 
-        desclient.sync_status_to_file("logs/incremental-change-delete.csv")
+        reporter.sync_status_to_file("logs/incremental-change-delete.csv")

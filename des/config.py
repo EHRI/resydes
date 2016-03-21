@@ -12,6 +12,7 @@ class Config(object):
 
     key_logging_configuration_file = "logging_configuration_file"
     key_location_mapper_destination_file = "location_mapper_destination_file"
+    key_destination_root = "destination_root"
     key_use_netloc = "use_netloc"
     key_use_checksum = "use_checksum"
     key_audit_only = "audit_only"
