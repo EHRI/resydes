@@ -4,10 +4,11 @@
 
 import logging
 import logging.config
-import unittest, threading
+import threading
+import unittest
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from desrunner import DesRunner
+from des.desrunner import DesRunner
 
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)

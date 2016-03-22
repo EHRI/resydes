@@ -4,7 +4,7 @@
 
 import unittest, logging, logging.config, threading, os.path, glob, shutil, pathlib, datetime
 import des.reporter
-from des.processor import Discoverer, Status, Relisync, Chanlisync
+from des.processor import Wellknown, Status, Relisync, Chanlisync
 from des.config import Config
 from des.location_mapper import DestinationMap
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -144,84 +144,84 @@ def __delete_resource__(src, resource):
         os.remove(filename)
 
 
-class TestDiscoverer(unittest.TestCase):
+class TestWellknown(unittest.TestCase):
 
     def test01_process_source(self):
         # no connection to non-existent uri
         base_uri = "http://ditbestaatechtniet.com/out/there"
-        discoverer = Discoverer(base_uri)
-        self.assertTrue(discoverer.base_uri.endswith("/"))
-        discoverer.read_source()
-        self.assertFalse(discoverer.source_status)
-        self.assertEqual(1, len(discoverer.exceptions))
+        wellknown = Wellknown(base_uri)
+        self.assertTrue(wellknown.base_uri.endswith("/"))
+        wellknown.read_source()
+        self.assertFalse(wellknown.source_status)
+        self.assertEqual(1, len(wellknown.exceptions))
 
-        self.assertEqual(Status.read_error, discoverer.status)
-        discoverer.process_source()
-        self.assertEqual(Status.read_error, discoverer.status)
+        self.assertEqual(Status.read_error, wellknown.status)
+        wellknown.process_source()
+        self.assertEqual(Status.read_error, wellknown.status)
 
     def test02_process_source(self):
         # connection but no .well-known/...
         base_uri = "http://localhost:8000/rs/source/s2/"
-        discoverer = Discoverer(base_uri)
-        discoverer.read_source()
-        self.assertEqual(404, discoverer.source_status)
-        self.assertEqual(1, len(discoverer.exceptions))
+        wellknown = Wellknown(base_uri)
+        wellknown.read_source()
+        self.assertEqual(404, wellknown.source_status)
+        self.assertEqual(1, len(wellknown.exceptions))
 
-        self.assertEqual(Status.read_error, discoverer.status)
-        discoverer.process_source()
-        self.assertEqual(Status.read_error, discoverer.status)
+        self.assertEqual(Status.read_error, wellknown.status)
+        wellknown.process_source()
+        self.assertEqual(Status.read_error, wellknown.status)
 
     def test03_process_source_(self):
         # connection and unreadable resourcesync
         base_uri = "http://localhost:8000/rs/source/s3/"
-        discoverer = Discoverer(base_uri)
-        discoverer.read_source()
-        self.assertEqual(200, discoverer.source_status)
-        self.assertEqual(1, len(discoverer.exceptions))
+        wellknown = Wellknown(base_uri)
+        wellknown.read_source()
+        self.assertEqual(200, wellknown.source_status)
+        self.assertEqual(1, len(wellknown.exceptions))
 
-        self.assertEqual(Status.read_error, discoverer.status)
-        discoverer.process_source()
-        self.assertEqual(Status.read_error, discoverer.status)
+        self.assertEqual(Status.read_error, wellknown.status)
+        wellknown.process_source()
+        self.assertEqual(Status.read_error, wellknown.status)
 
     def test04_process_source(self):
         # connection and resourcesync is xml but not sitemap
         base_uri = "http://localhost:8000/rs/source/s4/"
-        discoverer = Discoverer(base_uri)
-        discoverer.read_source()
-        self.assertEqual(200, discoverer.source_status)
-        self.assertEqual(1, len(discoverer.exceptions))
+        wellknown = Wellknown(base_uri)
+        wellknown.read_source()
+        self.assertEqual(200, wellknown.source_status)
+        self.assertEqual(1, len(wellknown.exceptions))
 
-        self.assertEqual(Status.read_error, discoverer.status)
-        discoverer.process_source()
-        self.assertEqual(Status.read_error, discoverer.status)
+        self.assertEqual(Status.read_error, wellknown.status)
+        wellknown.process_source()
+        self.assertEqual(Status.read_error, wellknown.status)
 
     def test05_process_source(self):
         # connection and readable resourcesync but capability is not 'description'
         base_uri = "http://localhost:8000/rs/source/s5/"
-        discoverer = Discoverer(base_uri)
-        discoverer.read_source()
-        self.assertEqual(200, discoverer.source_status)
-        self.assertEqual(1, len(discoverer.exceptions))
+        wellknown = Wellknown(base_uri)
+        wellknown.read_source()
+        self.assertEqual(200, wellknown.source_status)
+        self.assertEqual(1, len(wellknown.exceptions))
 
-        self.assertEqual(Status.read_error, discoverer.status)
-        discoverer.process_source()
-        self.assertEqual(Status.read_error, discoverer.status)
+        self.assertEqual(Status.read_error, wellknown.status)
+        wellknown.process_source()
+        self.assertEqual(Status.read_error, wellknown.status)
 
     def test06_process_source(self):
         # connection and readable resourcesync
         base_uri = "http://localhost:8000/rs/source/s6/"
-        discoverer = Discoverer(base_uri)
-        discoverer.read_source()
-        self.assertEqual(200, discoverer.source_status)
-        self.assertEqual(Status.document, discoverer.status)
-        # discoverer.source_description is a resync.resource_container.ResourceContainer
-        self.assertEqual("http://example.com/info_about_source.xml", discoverer.describedby_url)
-        self.assertEqual(0, len(discoverer.exceptions))
+        wellknown = Wellknown(base_uri)
+        wellknown.read_source()
+        self.assertEqual(200, wellknown.source_status)
+        self.assertEqual(Status.document, wellknown.status)
+        # wellknown.source_description is a resync.resource_container.ResourceContainer
+        self.assertEqual("http://example.com/info_about_source.xml", wellknown.describedby_url)
+        self.assertEqual(0, len(wellknown.exceptions))
 
-        self.assertEqual(Status.document, discoverer.status)
-        discoverer.process_source()
-        self.assertEqual(Status.processed_with_exceptions, discoverer.status)
-        self.assertEqual(3, len(discoverer.exceptions))
+        self.assertEqual(Status.document, wellknown.status)
+        wellknown.process_source()
+        self.assertEqual(Status.processed_with_exceptions, wellknown.status)
+        self.assertEqual(3, len(wellknown.exceptions))
 
 
 class TestRelisync(unittest.TestCase):

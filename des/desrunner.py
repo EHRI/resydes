@@ -7,6 +7,7 @@
 #
 
 import sys, argparse, os.path, logging, logging.config, time
+sys.path.append(".")
 try:
     sys.path.insert(0, "../resync")
 except:
@@ -15,7 +16,7 @@ except:
 import des.reporter
 from des.config import Config
 from des.location_mapper import DestinationMap
-from des.processor import Discoverer, Capaproc
+from des.processor import Wellknown, Capaproc
 
 
 class DesRunner(object):
@@ -58,7 +59,7 @@ class DesRunner(object):
         while condition:
             # list of urls
             self.logger.info("Reading source urls from '%s'" % sources)
-            self.read_sources(sources)
+            self.read_sources_doc(sources)
             # reset url --> destination map. New mappings may be configured
             DestinationMap._set_map_filename(Config().
                                              prop(Config.key_location_mapper_destination_file, "conf/desmap.txt"))
@@ -80,7 +81,7 @@ class DesRunner(object):
                 # repeat after sleep
                 condition = not (once or self.stop())
 
-    def read_sources(self, sources):
+    def read_sources_doc(self, sources):
         with open(sources) as f:
             lines = f.read().splitlines()
         self.sources = []
@@ -95,7 +96,9 @@ class DesRunner(object):
         for uri in self.sources:
             processor = None
             if task == "discover":
-                processor = Discoverer(uri)
+                pass
+            elif task == "wellknown":
+                processor = Wellknown(uri)
             elif task == "capability":
                 processor = Capaproc(uri)
 
@@ -126,7 +129,7 @@ class DesRunner(object):
 
 if __name__ == '__main__':
     # Run a DesRunner instance
-    task_choices = ['discover', 'capability']
+    task_choices = ['discover', 'wellknown', 'capability']
 
     parser = argparse.ArgumentParser(description="Run a ResourceSync Destination.",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)

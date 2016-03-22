@@ -133,9 +133,9 @@ class Processor(object):
         return self.status == Status.document
 
 
-class Discoverer(Processor):
+class Wellknown(Processor):
     """
-    Discoverer eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
+    Wellknown eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
     """
     def __init__(self, base_uri):
         self.logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ class Discoverer(Processor):
         else:
             self.base_uri = base_uri + "/"
         wellknown = urllib.parse.urljoin(self.base_uri, WELLKNOWN_RESOURCE)
-        super(Discoverer, self).__init__(wellknown, CAPA_DESCRIPTION)
+        super(Wellknown, self).__init__(wellknown, CAPA_DESCRIPTION)
 
     def process_source(self):
         if not self.__assert_document__():
