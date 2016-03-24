@@ -9,10 +9,15 @@ import des.desclient, des.reporter
 from enum import Enum
 from resync.sitemap import Sitemap
 from resync.client import ClientFatalError
+from resync.client_state import ClientState
 from des.location_mapper import DestinationMap
 from des.config import Config
 
 WELLKNOWN_RESOURCE = ".well-known/resourcesync"
+
+SITEMAP_ROOT = "{http://www.sitemaps.org/schemas/sitemap/0.9}urlset"
+SITEMAP_INDEX_ROOT = "{http://www.sitemaps.org/schemas/sitemap/0.9}sitemapindex"
+
 CAPA_DESCRIPTION = "description"
 CAPA_CAPABILITYLIST = "capabilitylist"
 CAPA_RESOURCELIST = "resourcelist"
@@ -55,6 +60,7 @@ class Processor(object):
         self.source_document = None
         self.describedby_url = None
         self.up_url = None
+        self.is_index = False
 
     def read_source(self):
         """
@@ -70,14 +76,18 @@ class Processor(object):
 
             text = response.text
             root = ET.fromstring(text)
+            self.is_index = root.tag == SITEMAP_INDEX_ROOT
+
+            etree = ET.ElementTree(root)
             sitemap = Sitemap()
-            self.source_document = sitemap.parse_xml(etree=ET.ElementTree(root))
+            self.source_document = sitemap.parse_xml(etree=etree)
             # the source_document is a resync.resource_container.ResourceContainer
             capability = self.source_document.capability
             assert capability == self.capability, \
                 "Capability is not %s but %s" % (self.capability, capability)
             self.describedby_url = self.source_document.describedby
-            self.up_url = self.source_document.up
+            self.up_url = self.source_document.up # to a parent non-index document
+            self.index_url = self.source_document.index # to a parent index document
             self.status = Status.document
 
         except requests.exceptions.ConnectionError as err:
@@ -173,26 +183,91 @@ class Capaproc(Processor):
         if not self.__assert_document__():
             return
 
-        # the source document is a capability list
+        # the source document is a capability list or a capability index
         for resource in self.source_document.resources:
             capability = resource.capability
-            if capability == CAPA_RESOURCELIST:
-                relisync = Relisync(resource.uri)
-                relisync.process_source()
-                self.exceptions.extend(relisync.exceptions)
+            processor = None
+            if capability == CAPA_CAPABILITYLIST:
+                # recursive: a capability index points to other capability lists
+                processor = Capaproc(resource.uri)
+            elif capability == CAPA_RESOURCELIST:
+                processor = Reliproc(resource.uri)
             elif capability == CAPA_RESOURCEDUMP:
                 pass
             elif capability == CAPA_CHANGELIST:
-                chanlisync = Chanlisync(resource.uri)
-                chanlisync.process_source()
-                self.exceptions.extend(chanlisync.exceptions)
+                processor = Chanliproc(resource.uri)
             elif capability == CAPA_CHANGEDUMP:
                 pass
             else:
                 self.logger.debug("Unknown capability %s in %s" % (capability, self.source_uri))
                 self.exceptions.append("Unknown capability %s in %s" % (capability, self.source_uri))
 
+            if processor is not None:
+                processor.process_source()
+                self.exceptions.extend(processor.exceptions)
+
         self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
+
+
+class Reliproc(Processor):
+    """
+    Reliproc eats the uri of a resource list and processes the contents.
+
+    """
+    def __init__(self, uri):
+        self.logger = logging.getLogger(__name__)
+        super(Reliproc, self).__init__(uri, CAPA_RESOURCELIST)
+
+    def process_source(self):
+        if not self.__assert_document__():
+            return
+
+        # the source document is a resource list or a resource index
+        if self.is_index:
+            for resource in self.source_document.resources:
+                capability = resource.capability
+                if capability == CAPA_RESOURCELIST:
+                    # recursive: a resource index points to other resource lists
+                    processor = Reliproc(resource.uri)
+                    processor.process_source()
+                    self.exceptions.extend(processor.exceptions)
+                else:
+                    self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
+                    self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
+        else:
+            processor = Relisync(self.source_uri)
+            processor.process_source()
+            self.exceptions.extend(processor.exceptions)
+
+
+class Chanliproc(Processor):
+    """
+    Chanliproc eats the uri of a change list and processes the contents.
+    """
+    def __init__(self, uri):
+        self.logger = logging.getLogger(__name__)
+        super(Chanliproc, self).__init__(uri, CAPA_CHANGELIST)
+
+    def process_source(self):
+        if not self.__assert_document__():
+            return
+
+        # the source document is a change list or a change index
+        if self.is_index:
+            for resource in self.source_document.resources:
+                capability = resource.capability
+                if capability == CAPA_CHANGELIST:
+                    # recursive: a change index points to other change lists
+                    processor = Chanliproc(resource.uri)
+                    processor.process_source()
+                    self.exceptions.extend(processor.exceptions)
+                else:
+                    self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
+                    self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
+        else:
+            processor = Chanlisync(self.source_uri)
+            processor.process_source()
+            self.exceptions.extend(processor.exceptions)
 
 
 class Resync(object):
@@ -241,13 +316,13 @@ class Resync(object):
 
         desclient = des.desclient.instance()
         # we have to strip 'resourcelist.xml' etc. from the uri because of workings of resync.
-        uri = os.path.dirname(self.uri)
-        self.logger.debug("Converted '%s' to '%s'" % (self.uri, uri))
+        #uri = os.path.dirname(self.uri)
+        #self.logger.debug("Converted '%s' to '%s'" % (self.uri, uri))
         try:
-            desclient.set_mappings((uri, destination))
+            desclient.set_mappings((self.uri, destination))
             self.do_synchronize(desclient, allow_deletion, audit_only)
         except ClientFatalError as err:
-            self.logger.warn("EXCEPTION while syncing %s" % uri, exc_info=True)
+            self.logger.warn("EXCEPTION while syncing %s" % self.uri, exc_info=True)
             desclient.log_status(exception=err)
             self.exceptions.append(err)
         finally:
@@ -290,4 +365,14 @@ class Chanlisync(Resync):
         super(Chanlisync, self).__init__(uri)
 
     def do_synchronize(self, desclient, allow_deletion, audit_only):
-        desclient.incremental(allow_deletion)
+        #
+        # State is now kept for the full url of resourcelist and changelist (whatever there names may be).
+        # The first time we go from baseline to incremental there will be no state for that particular url.
+        #
+        from_datetime = ClientState().get_state(self.uri)
+        if from_datetime is None:
+            from_datetime = "1999"
+        else:
+            from_datetime = None # only set this parameter when no state is present
+
+        desclient.incremental(allow_deletion=allow_deletion, from_datetime=from_datetime)

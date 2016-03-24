@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:rs="http://www.openarchives.org/rs/terms/">
+  <rs:ln rel="describedby"
+         href="http://localhost:8000/srv/source1/loc1/info_about_loc1_resources.xml"/>
+  <rs:ln rel="up"
+         href="http://localhost:8000/srv/source1/loc1/.well-known/resourcesync"/>
+  <rs:md capability="capabilitylist"/>
+  <sitemap>
+      <loc>http://localhost:8000/srv/source1/loc1/capabilitylist.xml</loc>
+      <rs:md capability="capabilitylist"/>
+  </sitemap>
+  <sitemap>
+      <loc>http://localhost:8000/srv/source1/loc1/capabilitylist.xml</loc>
+      <rs:md capability="capabilitylist"/>
+  </sitemap>
+  <sitemap>
+      <loc>http://localhost:8000/srv/source1/loc1/capabilitylist.xml</loc>
+      <rs:md capability="capabilitylist"/>
+  </sitemap>
+  <sitemap>
+      <loc>http://localhost:8000/srv/source1/loc1/capabilitylist.xml</loc>
+      <rs:md capability="capabilitylist"/>
+  </sitemap>
+</sitemapindex>

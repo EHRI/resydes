@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import unittest, logging, logging.config, threading, os.path, glob, shutil, pathlib, datetime
+import unittest, logging, logging.config, threading, os.path, glob, shutil, pathlib, datetime, time
 import des.reporter
 from des.processor import Wellknown, Status, Relisync, Chanlisync
 from des.config import Config
@@ -310,7 +310,7 @@ class TestRelisync(unittest.TestCase):
         # sync_status count: 1 for audit, 1 for create. expected 2
         self.assertEqual(2, len(reporter.sync_status))
         self.assertEqual(0, reporter.sync_status[0].same)
-        self.assertEqual(2, reporter.sync_status[0].created)
+        self.assertEqual(3, reporter.sync_status[0].created)
         self.assertEqual(0, reporter.sync_status[0].updated)
         self.assertEqual(0, reporter.sync_status[0].deleted)
         self.assertEqual(0, reporter.sync_status[0].to_delete)
@@ -326,7 +326,7 @@ class TestRelisync(unittest.TestCase):
         reporter = des.reporter.instance()
         # sync_status count: 1 for audit, 1 for create (both from previous run), 1 for audit, no update. expected 3
         self.assertEqual(3, len(reporter.sync_status))
-        self.assertEqual(2, reporter.sync_status[2].same)
+        self.assertEqual(3, reporter.sync_status[2].same)
         self.assertEqual(0, reporter.sync_status[2].created)
         self.assertEqual(0, reporter.sync_status[2].updated)
         self.assertEqual(0, reporter.sync_status[2].deleted)
@@ -443,38 +443,55 @@ class TestChanlisync(unittest.TestCase):
     def test_03_change_delete(self):
         Config().__set_prop__(Config.key_use_netloc, "False")
         Config().__set_prop__(Config.key_audit_only, "False")
-        DestinationMap().__set_destination__("http://localhost:8000/rs/source/s1", "rs/destination/d1")
+        DestinationMap().__set_destination__("http://localhost:8000/rs/source/s2", "rs/destination/d2")
 
-        __clear_destination__("d1")
-        __clear_sources_xml__("s1")
-        __add_resource__("s1", "added.txt")
-        __create_resourcelist__("s1")
+        __clear_destination__("d2")
+        __clear_sources_xml__("s2")
+        __add_resource__("s2", "added.txt")
+        __create_resourcelist__("s2")
 
         logger.debug("\n=========== create ==============\n")
-        relisync = Relisync("http://localhost:8000/rs/source/s1/resourcelist.xml")
+        relisync = Relisync("http://localhost:8000/rs/source/s2/resourcelist.xml")
         relisync.process_source()
         self.assertEqual(0, len(relisync.exceptions))
         self.assertEqual(Status.processed, relisync.status)
 
-        __change_resource__("s1", "resource2.txt")
-        __delete_resource__("s1", "added.txt")
-        __create_changelist__("s1")
+        __change_resource__("s2", "resource2.txt")
+        __delete_resource__("s2", "added.txt")
+        __create_changelist__("s2")
 
-        logger.debug("\n=========== change + delete ==============\n")
-        chanlisync = Chanlisync("http://localhost:8000/rs/source/s1/changelist.xml")
+        des.reporter.reset_instance()
+        #time.sleep(5)
+        logger.debug("\n=========== update + delete ==============\n")
+        chanlisync = Chanlisync("http://localhost:8000/rs/source/s2/changelist.xml")
         chanlisync.process_source()
 
         self.assertEqual(0, len(chanlisync.exceptions))
         self.assertEqual(Status.processed, chanlisync.status)
 
         reporter = des.reporter.instance()
-        self.assertEqual(4, len(reporter.sync_status))
-        #self.assertEqual(1, reporter.sync_status[3].same)
-        self.assertIsNone(reporter.sync_status[3].same)
-        self.assertEqual(0, reporter.sync_status[3].created)
-        self.assertEqual(1, reporter.sync_status[3].updated)
-        self.assertEqual(1, reporter.sync_status[3].deleted)
-        self.assertEqual(1, reporter.sync_status[3].to_delete)
-        self.assertIsNone(reporter.sync_status[3].exception)
-
         reporter.sync_status_to_file("logs/incremental-change-delete.csv")
+        self.assertEqual(2, len(reporter.sync_status))
+        self.assertIsNone(reporter.sync_status[1].same)
+        self.assertEqual(0, reporter.sync_status[1].created)
+        self.assertEqual(1, reporter.sync_status[1].updated)
+        self.assertEqual(1, reporter.sync_status[1].deleted)
+        self.assertEqual(1, reporter.sync_status[1].to_delete)
+        self.assertIsNone(reporter.sync_status[1].exception)
+
+        des.reporter.reset_instance()
+        logger.debug("\n=========== no change ==============\n")
+        chanlisync = Chanlisync("http://localhost:8000/rs/source/s2/changelist.xml")
+        chanlisync.process_source()
+
+        self.assertEqual(0, len(chanlisync.exceptions))
+        self.assertEqual(Status.processed, chanlisync.status)
+
+        reporter = des.reporter.instance()
+        self.assertEqual(1, len(reporter.sync_status))
+        self.assertIsNone(reporter.sync_status[0].same)
+        self.assertEqual(0, reporter.sync_status[0].created)
+        self.assertEqual(0, reporter.sync_status[0].updated)
+        self.assertEqual(0, reporter.sync_status[0].deleted)
+        self.assertEqual(0, reporter.sync_status[0].to_delete)
+        self.assertIsNone(reporter.sync_status[0].exception)

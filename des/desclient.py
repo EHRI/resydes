@@ -90,6 +90,29 @@ class DesClient(Client):
     #     self.logger.debug("Duck type: sub called from super and returns '%s'" % filename)
     #     return filename
 
+    # The resync.client has a strict name convention: you can only give it a base url like
+    #       "http://localhost:8000/rs/source/s1".
+    # Calling 'baseline_or_audit' or 'incremental' on the original resync.client will then do so for the urls
+    #       "http://localhost:8000/rs/source/s1/resourcelist.xml" and
+    #       "http://localhost:8000/rs/source/s1/changelist.xml" respectively.
+    # What if we have other file names for these resources: 'resourcelist_xyz.xml' or 'weird.foo'?
+    # The two overrides below take away these strict name conventions.
+    #
+    # Override strict name restriction
+    def set_mappings(self, mappings):
+        """Build and set Mapper object based on input mappings"""
+        self.des_full_uri = mappings[0]     # i.e. http://localhost:8000/rs/source/s1/resourcelist_xyz.xml
+        self.des_destination = mappings[1]  # i.e. rs/destination/d1
+
+        uri = os.path.dirname(self.des_full_uri)
+        super().set_mappings((uri, self.des_destination))
+
+    # Override strict name restriction
+    def sitemap_uri(self, basename):
+        """Get full URI (filepath) for sitemap based on basename"""
+        return self.des_full_uri
+
+
     # Override
     def log_status(self, in_sync=None, incremental=False, audit=False,
                    same=None, created=0, updated=0, deleted=0, to_delete=0, exception=None):
