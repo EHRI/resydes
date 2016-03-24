@@ -1,17 +1,20 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import abc
 import logging
-import requests, urllib.parse, xml, abc, os.path
+import urllib.parse
+import xml
 import xml.etree.ElementTree as ET
+
+import requests
+
+import des.desclient
+import des.reporter
 import resync
-import des.desclient, des.reporter
-from enum import Enum
+from des.status import Status
+from des.sync import Relisync, Chanlisync
 from resync.sitemap import Sitemap
-from resync.client import ClientFatalError
-from resync.client_state import ClientState
-from des.location_mapper import DestinationMap
-from des.config import Config
 
 WELLKNOWN_RESOURCE = ".well-known/resourcesync"
 
@@ -24,18 +27,6 @@ CAPA_RESOURCELIST = "resourcelist"
 CAPA_RESOURCEDUMP = "resourcedump"
 CAPA_CHANGELIST = "changelist"
 CAPA_CHANGEDUMP = "changedump"
-
-
-class Status(Enum):
-    """
-    The status of a Processor
-    """
-    init = 1                        # processor is in initial state.
-    read_error = 2                  # processor tried to read its assigned uri but failed.
-    document = 3                    # processor has read and parsed its assigned uri.
-    processed_with_exceptions = 4   # processor has done implied actions according to document from assigned uri
-                                    # but did not succeed completely.
-    processed = 5                   # processor has done implied actions according to document from assigned uri.
 
 
 class Processor(object):
@@ -253,7 +244,7 @@ class Chanliproc(Processor):
             return
 
         # the source document is a change list or a change index
-        if self.is_index:
+        if self.is_index: # the source document is a change index
             for resource in self.source_document.resources:
                 capability = resource.capability
                 if capability == CAPA_CHANGELIST:
@@ -261,118 +252,10 @@ class Chanliproc(Processor):
                     processor = Chanliproc(resource.uri)
                     processor.process_source()
                     self.exceptions.extend(processor.exceptions)
-                else:
+                else: # other capabilities not allowed in change index
                     self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
                     self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
-        else:
+        else: # the source document is a change list
             processor = Chanlisync(self.source_uri)
             processor.process_source()
             self.exceptions.extend(processor.exceptions)
-
-
-class Resync(object):
-    """
-    Synchronisation with the resync.client.Client
-    """
-    def __init__(self, uri):
-        """
-        Initialize a Resync
-        :param uri: The uri pointing to a resource list If the uri ends with something other than
-        'resourcelist.xml' you're in trouble.
-        :return: None
-        """
-        self.logger = logging.getLogger(__name__)
-        self.uri = uri
-
-        self.exceptions = []
-        self.status = Status.init
-
-    @abc.abstractmethod
-    def do_synchronize(self, desclient, allow_deletion, audit_only):
-        raise NotImplementedError
-
-    def has_exceptions(self):
-        return len(self.exceptions) != 0
-
-    def process_source(self):
-        config = Config()
-        netloc = config.boolean_prop(Config.key_use_netloc, False)
-        destination = DestinationMap().find_destination(self.uri, netloc=netloc)
-        if destination is None:
-            self.logger.debug("No destination for %s" % self.uri)
-            self.exceptions.append("No destination for %s" % self.uri)
-            des.reporter.instance().log_status(self.uri,
-                exception="No destination specified and use of net location prohibited.")
-        else:
-            self.__synchronize__(destination)
-
-        self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
-
-    def __synchronize__(self, destination):
-        config = Config()
-        checksum = config.boolean_prop(Config.key_use_checksum, True)
-        audit_only = config.boolean_prop(Config.key_audit_only, True)
-        allow_deletion = not audit_only
-
-        desclient = des.desclient.instance()
-        # we have to strip 'resourcelist.xml' etc. from the uri because of workings of resync.
-        #uri = os.path.dirname(self.uri)
-        #self.logger.debug("Converted '%s' to '%s'" % (self.uri, uri))
-        try:
-            desclient.set_mappings((self.uri, destination))
-            self.do_synchronize(desclient, allow_deletion, audit_only)
-        except ClientFatalError as err:
-            self.logger.warn("EXCEPTION while syncing %s" % self.uri, exc_info=True)
-            desclient.log_status(exception=err)
-            self.exceptions.append(err)
-        finally:
-            # A side effect (or a bug ;) is messing around with the
-            # class-level property Client.checksum. Make sure it is always set to initial value before the next
-            # source is processed.
-            desclient.checksum = checksum
-
-
-class Relisync(Resync):
-    """
-    Synchronisation of a resource list. Synchronisation is eventually done with the resync.client.Client
-
-    """
-    def __init__(self, uri):
-        """
-        Initialize a Relisync
-        :param uri: The uri pointing to a resource list If the uri ends with something other than
-        'resourcelist.xml' you're in trouble.
-        :return: None
-        """
-        super(Relisync, self).__init__(uri)
-
-    def do_synchronize(self, desclient, allow_deletion, audit_only):
-        desclient.baseline_or_audit(allow_deletion, audit_only)
-
-
-class Chanlisync(Resync):
-    """
-    Synchronisation of a change list. Synchronisation is eventually done with the resync.client.Client
-
-    """
-    def __init__(self, uri):
-        """
-        Initialize a Chanlisync
-        :param uri: The uri pointing to a change list If the uri ends with something other than
-        'changelist.xml' you're in trouble.
-        :return: None
-        """
-        super(Chanlisync, self).__init__(uri)
-
-    def do_synchronize(self, desclient, allow_deletion, audit_only):
-        #
-        # State is now kept for the full url of resourcelist and changelist (whatever there names may be).
-        # The first time we go from baseline to incremental there will be no state for that particular url.
-        #
-        from_datetime = ClientState().get_state(self.uri)
-        if from_datetime is None:
-            from_datetime = "1999"
-        else:
-            from_datetime = None # only set this parameter when no state is present
-
-        desclient.incremental(allow_deletion=allow_deletion, from_datetime=from_datetime)
