@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.org/rs/terms/">
-<rs:md capability="changelist" />
-<url><loc>http://localhost:8000/srv/source1/loc1/files/file1.txt</loc><lastmod>2016-03-14T12:41:48Z</lastmod><rs:md change="created" hash="md5:mSsjGbTxyyFZJuPHWbg1xw==" length="55" /></url>
-<url><loc>http://localhost:8000/srv/source1/loc1/files/file2.txt</loc><lastmod>2016-03-14T12:42:19Z</lastmod><rs:md change="created" hash="md5:T4SJust08hvgZNY66KyvVg==" length="54" /></url>
-<url><loc>http://localhost:8000/srv/source1/loc1/files/file3.txt</loc><lastmod>2016-03-21T15:55:20Z</lastmod><rs:md change="created" hash="md5:bFvw3xYhp/oKZGoowlJJpg==" length="54" /></url>
-</urlset>

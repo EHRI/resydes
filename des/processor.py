@@ -134,24 +134,80 @@ class Processor(object):
         return self.status == Status.document
 
 
-class Wellknown(Processor):
+class RelayProcessor(Processor):
     """
-    Wellknown eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
+    Documents in the Resource Sync Framework can be sitemapindexes, pointing recursively to documents of the same type,
+    or urlsets, pointing to documents or resources lower in the framework hierarchy.
+    (See also: http://www.openarchives.org/rs/1.0/resourcesync#fig_framework_structure)
+    RelayProcessor hands over the processing to the next processor based on the source_document being an index or not.
+
+    """
+
+    @abc.abstractmethod
+    def __process_lower__(self):
+        """
+        Process the document if it is a urlset.
+        :return: None
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __get_level_processor__(self, uri):
+        """
+        Get the processor capable of handling documents of the same capability.
+        :param uri: The uri of the document the level processor will process.
+        :return: Initialized processor
+        """
+        raise NotImplementedError
+
+    def __process_index__(self):
+        """
+        Process the document if it is a sitemapindex.
+        :return: None
+        """
+        for resource in self.source_document.resources:
+            capability = resource.capability
+            if capability == self.capability: # a index can only point to sitemaps or urlsets with the same capability.
+                processor = self.__get_level_processor__(resource.uri)
+                processor.process_source()
+                self.exceptions.extend(processor.exceptions)
+            else:
+                self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
+                self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
+
+    def __process_source__(self):
+        if not self.__assert_document__():
+            return
+
+        # the source document is a urlset (non-index) or a sitemapindex.
+        if self.is_index:
+            self.__process_index__()
+        else:
+            self.__process_lower__()
+
+        self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
+
+
+class SourceDescription(RelayProcessor):
+    """
+    SourceDescription eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
     """
     def __init__(self, base_uri):
-        self.logger = logging.getLogger(__name__)
         # urllib.parse.urljoin leaves out the last part of a path if it doesn't end with '/'
         if base_uri.endswith("/"):
             self.base_uri = base_uri
         else:
             self.base_uri = base_uri + "/"
         wellknown = urllib.parse.urljoin(self.base_uri, WELLKNOWN_RESOURCE)
-        super(Wellknown, self).__init__(wellknown, CAPA_DESCRIPTION)
+        super(SourceDescription, self).__init__(wellknown, CAPA_DESCRIPTION)
 
     def process_source(self):
-        if not self.__assert_document__():
-            return
+        self.__process_source__()
 
+    def __get_level_processor__(self, uri):
+        return SourceDescription(uri)
+
+    def __process_lower__(self):
         # the source document is a source description
         for resource in self.source_document.resources:
             # it contains links to capabilitylists
@@ -159,15 +215,12 @@ class Wellknown(Processor):
             capaproc.process_source()
             self.exceptions.extend(capaproc.exceptions)
 
-        self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
-
 
 class Capaproc(Processor):
     """
     Capaproc eats the uri of a capability list and processes the contents.
     """
     def __init__(self, uri):
-        self.logger = logging.getLogger(__name__)
         super(Capaproc, self).__init__(uri, CAPA_CAPABILITYLIST)
 
     def process_source(self):
@@ -184,7 +237,7 @@ class Capaproc(Processor):
             elif capability == CAPA_RESOURCELIST:
                 processor = Reliproc(resource.uri)
             elif capability == CAPA_RESOURCEDUMP:
-                pass
+                processor = Redumpproc(resource.uri)
             elif capability == CAPA_CHANGELIST:
                 processor = Chanliproc(resource.uri)
             elif capability == CAPA_CHANGEDUMP:
@@ -200,62 +253,60 @@ class Capaproc(Processor):
         self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
 
 
-class Reliproc(Processor):
+class Reliproc(RelayProcessor):
     """
     Reliproc eats the uri of a resource list and processes the contents.
 
     """
     def __init__(self, uri):
-        self.logger = logging.getLogger(__name__)
         super(Reliproc, self).__init__(uri, CAPA_RESOURCELIST)
 
     def process_source(self):
-        if not self.__assert_document__():
-            return
+        self.__process_source__()
 
-        # the source document is a resource list or a resource index
-        if self.is_index:
-            for resource in self.source_document.resources:
-                capability = resource.capability
-                if capability == CAPA_RESOURCELIST:
-                    # recursive: a resource index points to other resource lists
-                    processor = Reliproc(resource.uri)
-                    processor.process_source()
-                    self.exceptions.extend(processor.exceptions)
-                else:
-                    self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
-                    self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
-        else:
-            processor = Relisync(self.source_uri)
-            processor.process_source()
-            self.exceptions.extend(processor.exceptions)
+    def __get_level_processor__(self, uri):
+        return Reliproc(uri)
+
+    def __process_lower__(self):
+        processor = Relisync(self.source_uri)
+        processor.process_source()
+        self.exceptions.extend(processor.exceptions)
 
 
-class Chanliproc(Processor):
+class Chanliproc(RelayProcessor):
     """
     Chanliproc eats the uri of a change list and processes the contents.
     """
     def __init__(self, uri):
-        self.logger = logging.getLogger(__name__)
         super(Chanliproc, self).__init__(uri, CAPA_CHANGELIST)
 
     def process_source(self):
-        if not self.__assert_document__():
-            return
+        self.__process_source__()
 
-        # the source document is a change list or a change index
-        if self.is_index: # the source document is a change index
-            for resource in self.source_document.resources:
-                capability = resource.capability
-                if capability == CAPA_CHANGELIST:
-                    # recursive: a change index points to other change lists
-                    processor = Chanliproc(resource.uri)
-                    processor.process_source()
-                    self.exceptions.extend(processor.exceptions)
-                else: # other capabilities not allowed in change index
-                    self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
-                    self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
-        else: # the source document is a change list
-            processor = Chanlisync(self.source_uri)
-            processor.process_source()
-            self.exceptions.extend(processor.exceptions)
+    def __get_level_processor__(self, uri):
+        return Chanliproc(uri)
+
+    def __process_lower__(self):
+        processor = Chanlisync(self.source_uri)
+        processor.process_source()
+        self.exceptions.extend(processor.exceptions)
+
+
+class Redumpproc(RelayProcessor):
+    """
+    Redumpproc eats the uri of a resource dump and processes the contents.
+    """
+    def __init__(self, uri):
+        super(Redumpproc, self).__init__(uri, CAPA_RESOURCEDUMP)
+
+    def process_source(self):
+        self.__process_source__()
+
+    def __get_level_processor__(self, uri):
+        return Redumpproc(uri)
+
+    def __process_lower__(self):
+        completed = self.source_document.md_completed
+
+        for resource in self.source_document.resources:
+            print(resource.uri)

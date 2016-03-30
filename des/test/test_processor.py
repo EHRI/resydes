@@ -13,7 +13,7 @@ import threading
 import unittest
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from des.processor import Wellknown
+from des.processor import SourceDescription, Redumpproc
 from des.status import Status
 from resync.client import Client
 
@@ -156,7 +156,7 @@ class TestWellknown(unittest.TestCase):
     def test01_process_source(self):
         # no connection to non-existent uri
         base_uri = "http://ditbestaatechtniet.com/out/there"
-        wellknown = Wellknown(base_uri)
+        wellknown = SourceDescription(base_uri)
         self.assertTrue(wellknown.base_uri.endswith("/"))
         wellknown.read_source()
         self.assertFalse(wellknown.source_status)
@@ -169,7 +169,7 @@ class TestWellknown(unittest.TestCase):
     def test02_process_source(self):
         # connection but no .well-known/...
         base_uri = "http://localhost:8000/rs/source/s2/"
-        wellknown = Wellknown(base_uri)
+        wellknown = SourceDescription(base_uri)
         wellknown.read_source()
         self.assertEqual(404, wellknown.source_status)
         self.assertEqual(1, len(wellknown.exceptions))
@@ -181,7 +181,7 @@ class TestWellknown(unittest.TestCase):
     def test03_process_source_(self):
         # connection and unreadable resourcesync
         base_uri = "http://localhost:8000/rs/source/s3/"
-        wellknown = Wellknown(base_uri)
+        wellknown = SourceDescription(base_uri)
         wellknown.read_source()
         self.assertEqual(200, wellknown.source_status)
         self.assertEqual(1, len(wellknown.exceptions))
@@ -193,7 +193,7 @@ class TestWellknown(unittest.TestCase):
     def test04_process_source(self):
         # connection and resourcesync is xml but not sitemap
         base_uri = "http://localhost:8000/rs/source/s4/"
-        wellknown = Wellknown(base_uri)
+        wellknown = SourceDescription(base_uri)
         wellknown.read_source()
         self.assertEqual(200, wellknown.source_status)
         self.assertEqual(1, len(wellknown.exceptions))
@@ -205,7 +205,7 @@ class TestWellknown(unittest.TestCase):
     def test05_process_source(self):
         # connection and readable resourcesync but capability is not 'description'
         base_uri = "http://localhost:8000/rs/source/s5/"
-        wellknown = Wellknown(base_uri)
+        wellknown = SourceDescription(base_uri)
         wellknown.read_source()
         self.assertEqual(200, wellknown.source_status)
         self.assertEqual(1, len(wellknown.exceptions))
@@ -217,7 +217,7 @@ class TestWellknown(unittest.TestCase):
     def test06_process_source(self):
         # connection and readable resourcesync
         base_uri = "http://localhost:8000/rs/source/s6/"
-        wellknown = Wellknown(base_uri)
+        wellknown = SourceDescription(base_uri)
         wellknown.read_source()
         self.assertEqual(200, wellknown.source_status)
         self.assertEqual(Status.document, wellknown.status)
@@ -229,5 +229,14 @@ class TestWellknown(unittest.TestCase):
         wellknown.process_source()
         self.assertEqual(Status.processed_with_exceptions, wellknown.status)
         self.assertEqual(3, len(wellknown.exceptions))
+
+
+class TestRedumpproc(unittest.TestCase):
+
+    def testRead(self):
+        uri = "http://localhost:8000/rs/source/redump/resourcedump.xml"
+        redumpproc = Redumpproc(uri)
+
+        redumpproc.process_source()
 
 
