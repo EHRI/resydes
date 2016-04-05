@@ -1,4 +1,4 @@
 http://localhost:8000/srv/source1/loc1=d_1a
 http://localhost:8000/srv/source1/loc2=d_1b
-http://localhost:8000/srv/source2=d_2
+http://localhost:8000/srv/source2/=d_2
 http://localhost:8000/srv/source3=d_3

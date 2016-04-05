@@ -22,6 +22,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -73,5 +74,7 @@ venv/
 */**/resourcelist.xml
 des/test/rs/destination/d1/files/
 des/test/rs/destination/d2/files/
+des/test/rs/source/redump/rd_*
 .resync-client-status.cfg
-
+logs/*
+stop

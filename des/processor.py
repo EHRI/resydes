@@ -12,9 +12,12 @@ import requests
 import des.desclient
 import des.reporter
 import resync
+import resync.w3c_datetime as w3c
 from des.status import Status
 from des.sync import Relisync, Chanlisync
+from des.dump import Redump
 from resync.sitemap import Sitemap
+from resync.client_state import ClientState
 
 WELLKNOWN_RESOURCE = ".well-known/resourcesync"
 
@@ -55,8 +58,8 @@ class Processor(object):
 
     def read_source(self):
         """
-
-        :return:
+        Read the source_uri and parse it to source_document.
+        :return: True if the document was downloaded and parsed without exceptions, False otherwise.
         """
         session = requests.Session()
         try:
@@ -175,20 +178,18 @@ class RelayProcessor(Processor):
                 self.logger.debug("Unexpected capability %s in %s" % (capability, self.source_uri))
                 self.exceptions.append("Unexpected capability %s in %s" % (capability, self.source_uri))
 
-    def __process_source__(self):
+    def process_source(self):
         if not self.__assert_document__():
             return
-
         # the source document is a urlset (non-index) or a sitemapindex.
         if self.is_index:
             self.__process_index__()
         else:
             self.__process_lower__()
-
         self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
 
 
-class SourceDescription(RelayProcessor):
+class SourceDescriptionproc(RelayProcessor):
     """
     SourceDescription eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
     """
@@ -199,13 +200,10 @@ class SourceDescription(RelayProcessor):
         else:
             self.base_uri = base_uri + "/"
         wellknown = urllib.parse.urljoin(self.base_uri, WELLKNOWN_RESOURCE)
-        super(SourceDescription, self).__init__(wellknown, CAPA_DESCRIPTION)
-
-    def process_source(self):
-        self.__process_source__()
+        super(SourceDescriptionproc, self).__init__(wellknown, CAPA_DESCRIPTION)
 
     def __get_level_processor__(self, uri):
-        return SourceDescription(uri)
+        return SourceDescriptionproc(uri)
 
     def __process_lower__(self):
         # the source document is a source description
@@ -261,9 +259,6 @@ class Reliproc(RelayProcessor):
     def __init__(self, uri):
         super(Reliproc, self).__init__(uri, CAPA_RESOURCELIST)
 
-    def process_source(self):
-        self.__process_source__()
-
     def __get_level_processor__(self, uri):
         return Reliproc(uri)
 
@@ -279,9 +274,6 @@ class Chanliproc(RelayProcessor):
     """
     def __init__(self, uri):
         super(Chanliproc, self).__init__(uri, CAPA_CHANGELIST)
-
-    def process_source(self):
-        self.__process_source__()
 
     def __get_level_processor__(self, uri):
         return Chanliproc(uri)
@@ -299,14 +291,32 @@ class Redumpproc(RelayProcessor):
     def __init__(self, uri):
         super(Redumpproc, self).__init__(uri, CAPA_RESOURCEDUMP)
 
-    def process_source(self):
-        self.__process_source__()
-
     def __get_level_processor__(self, uri):
         return Redumpproc(uri)
 
     def __process_lower__(self):
-        completed = self.source_document.md_completed
+        # the source document is a urlset with url/loc's pointing to packaged resources.
+        md_at = w3c.str_to_datetime(self.source_document.md_at) # 'must have' at attribute
+        last_synced = ClientState().get_state(self.source_uri)
+        if last_synced is None or md_at > last_synced:
+            for resource in self.source_document.resources:
+                self.__process_resource__(resource)
 
-        for resource in self.source_document.resources:
-            print(resource.uri)
+            if len(self.exceptions) == 0:
+                ClientState().set_state(self.source_uri, md_at)
+        else:
+            self.logger.debug("In sync: %s" % self.source_uri)
+            des.reporter.instance().log_status(uri=self.source_uri, in_sync=True)
+
+    def __process_resource__(self, resource):
+        # the resource points to a resource dump.
+        md_at = w3c.str_to_datetime(resource.md_at) # 'may have' at attribute
+        last_synced = ClientState().get_state(resource.uri)
+        if last_synced is None or md_at is None or md_at > last_synced:
+            self.__process_dump__(resource.uri)
+        else:
+            des.reporter.instance().log_status(uri=resource.uri, in_sync=True)
+
+    def __process_dump__(self, uri):
+        redump = Redump(uri)
+        redump.process_dump()

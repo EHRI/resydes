@@ -16,7 +16,7 @@ except:
 import des.reporter
 from des.config import Config
 from des.location_mapper import DestinationMap
-from des.processor import SourceDescription, Capaproc
+from des.processor import SourceDescriptionproc, Capaproc
 
 
 class DesRunner(object):
@@ -98,7 +98,7 @@ class DesRunner(object):
             if task == "discover":
                 pass
             elif task == "wellknown":
-                processor = SourceDescription(uri)
+                processor = SourceDescriptionproc(uri)
             elif task == "capability":
                 processor = Capaproc(uri)
 

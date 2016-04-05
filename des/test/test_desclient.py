@@ -148,7 +148,8 @@ class TestDesClient(unittest.TestCase):
         logger.debug("\n============ first incremental =============\n")
         desclient = des.desclient.instance()
         desclient.set_mappings((uri, destination))
-        desclient.incremental(allow_deletion=allow_deletion)
+        from_datetime = "1999"
+        desclient.incremental(allow_deletion=allow_deletion, from_datetime=from_datetime)
 
         self.assertEqual(2, len(des.reporter.instance().sync_status))
 

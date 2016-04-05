@@ -13,7 +13,7 @@ import threading
 import unittest
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from des.processor import SourceDescription, Redumpproc
+from des.processor import SourceDescriptionproc, Redumpproc
 from des.status import Status
 from resync.client import Client
 
@@ -151,84 +151,84 @@ def __delete_resource__(src, resource):
         os.remove(filename)
 
 
-class TestWellknown(unittest.TestCase):
+class TestSourceDescriptionproc(unittest.TestCase):
 
     def test01_process_source(self):
         # no connection to non-existent uri
         base_uri = "http://ditbestaatechtniet.com/out/there"
-        wellknown = SourceDescription(base_uri)
-        self.assertTrue(wellknown.base_uri.endswith("/"))
-        wellknown.read_source()
-        self.assertFalse(wellknown.source_status)
-        self.assertEqual(1, len(wellknown.exceptions))
+        sdproc = SourceDescriptionproc(base_uri)
+        self.assertTrue(sdproc.base_uri.endswith("/"))
+        sdproc.read_source()
+        self.assertFalse(sdproc.source_status)
+        self.assertEqual(1, len(sdproc.exceptions))
 
-        self.assertEqual(Status.read_error, wellknown.status)
-        wellknown.process_source()
-        self.assertEqual(Status.read_error, wellknown.status)
+        self.assertEqual(Status.read_error, sdproc.status)
+        sdproc.process_source()
+        self.assertEqual(Status.read_error, sdproc.status)
 
     def test02_process_source(self):
         # connection but no .well-known/...
         base_uri = "http://localhost:8000/rs/source/s2/"
-        wellknown = SourceDescription(base_uri)
-        wellknown.read_source()
-        self.assertEqual(404, wellknown.source_status)
-        self.assertEqual(1, len(wellknown.exceptions))
+        sdproc = SourceDescriptionproc(base_uri)
+        sdproc.read_source()
+        self.assertEqual(404, sdproc.source_status)
+        self.assertEqual(1, len(sdproc.exceptions))
 
-        self.assertEqual(Status.read_error, wellknown.status)
-        wellknown.process_source()
-        self.assertEqual(Status.read_error, wellknown.status)
+        self.assertEqual(Status.read_error, sdproc.status)
+        sdproc.process_source()
+        self.assertEqual(Status.read_error, sdproc.status)
 
     def test03_process_source_(self):
         # connection and unreadable resourcesync
         base_uri = "http://localhost:8000/rs/source/s3/"
-        wellknown = SourceDescription(base_uri)
-        wellknown.read_source()
-        self.assertEqual(200, wellknown.source_status)
-        self.assertEqual(1, len(wellknown.exceptions))
+        sdproc = SourceDescriptionproc(base_uri)
+        sdproc.read_source()
+        self.assertEqual(200, sdproc.source_status)
+        self.assertEqual(1, len(sdproc.exceptions))
 
-        self.assertEqual(Status.read_error, wellknown.status)
-        wellknown.process_source()
-        self.assertEqual(Status.read_error, wellknown.status)
+        self.assertEqual(Status.read_error, sdproc.status)
+        sdproc.process_source()
+        self.assertEqual(Status.read_error, sdproc.status)
 
     def test04_process_source(self):
         # connection and resourcesync is xml but not sitemap
         base_uri = "http://localhost:8000/rs/source/s4/"
-        wellknown = SourceDescription(base_uri)
-        wellknown.read_source()
-        self.assertEqual(200, wellknown.source_status)
-        self.assertEqual(1, len(wellknown.exceptions))
+        sdproc = SourceDescriptionproc(base_uri)
+        sdproc.read_source()
+        self.assertEqual(200, sdproc.source_status)
+        self.assertEqual(1, len(sdproc.exceptions))
 
-        self.assertEqual(Status.read_error, wellknown.status)
-        wellknown.process_source()
-        self.assertEqual(Status.read_error, wellknown.status)
+        self.assertEqual(Status.read_error, sdproc.status)
+        sdproc.process_source()
+        self.assertEqual(Status.read_error, sdproc.status)
 
     def test05_process_source(self):
         # connection and readable resourcesync but capability is not 'description'
         base_uri = "http://localhost:8000/rs/source/s5/"
-        wellknown = SourceDescription(base_uri)
-        wellknown.read_source()
-        self.assertEqual(200, wellknown.source_status)
-        self.assertEqual(1, len(wellknown.exceptions))
+        sdproc = SourceDescriptionproc(base_uri)
+        sdproc.read_source()
+        self.assertEqual(200, sdproc.source_status)
+        self.assertEqual(1, len(sdproc.exceptions))
 
-        self.assertEqual(Status.read_error, wellknown.status)
-        wellknown.process_source()
-        self.assertEqual(Status.read_error, wellknown.status)
+        self.assertEqual(Status.read_error, sdproc.status)
+        sdproc.process_source()
+        self.assertEqual(Status.read_error, sdproc.status)
 
     def test06_process_source(self):
         # connection and readable resourcesync
         base_uri = "http://localhost:8000/rs/source/s6/"
-        wellknown = SourceDescription(base_uri)
-        wellknown.read_source()
-        self.assertEqual(200, wellknown.source_status)
-        self.assertEqual(Status.document, wellknown.status)
-        # wellknown.source_description is a resync.resource_container.ResourceContainer
-        self.assertEqual("http://example.com/info_about_source.xml", wellknown.describedby_url)
-        self.assertEqual(0, len(wellknown.exceptions))
+        sdproc = SourceDescriptionproc(base_uri)
+        sdproc.read_source()
+        self.assertEqual(200, sdproc.source_status)
+        self.assertEqual(Status.document, sdproc.status)
+        # sdproc.source_description is a resync.resource_container.ResourceContainer
+        self.assertEqual("http://example.com/info_about_source.xml", sdproc.describedby_url)
+        self.assertEqual(0, len(sdproc.exceptions))
 
-        self.assertEqual(Status.document, wellknown.status)
-        wellknown.process_source()
-        self.assertEqual(Status.processed_with_exceptions, wellknown.status)
-        self.assertEqual(3, len(wellknown.exceptions))
+        self.assertEqual(Status.document, sdproc.status)
+        sdproc.process_source()
+        self.assertEqual(Status.processed_with_exceptions, sdproc.status)
+        self.assertEqual(3, len(sdproc.exceptions))
 
 
 class TestRedumpproc(unittest.TestCase):
