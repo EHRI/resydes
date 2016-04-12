@@ -13,7 +13,7 @@ import threading
 import unittest
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from des.processor import SourceDescriptionproc, Redumpproc
+from des.processor import Sodesproc, Redumpproc
 from des.status import Status
 from resync.client import Client
 
@@ -151,12 +151,12 @@ def __delete_resource__(src, resource):
         os.remove(filename)
 
 
-class TestSourceDescriptionproc(unittest.TestCase):
+class TestSodesproc(unittest.TestCase):
 
     def test01_process_source(self):
         # no connection to non-existent uri
         base_uri = "http://ditbestaatechtniet.com/out/there"
-        sdproc = SourceDescriptionproc(base_uri)
+        sdproc = Sodesproc(base_uri)
         self.assertTrue(sdproc.base_uri.endswith("/"))
         sdproc.read_source()
         self.assertFalse(sdproc.source_status)
@@ -169,7 +169,7 @@ class TestSourceDescriptionproc(unittest.TestCase):
     def test02_process_source(self):
         # connection but no .well-known/...
         base_uri = "http://localhost:8000/rs/source/s2/"
-        sdproc = SourceDescriptionproc(base_uri)
+        sdproc = Sodesproc(base_uri)
         sdproc.read_source()
         self.assertEqual(404, sdproc.source_status)
         self.assertEqual(1, len(sdproc.exceptions))
@@ -181,7 +181,7 @@ class TestSourceDescriptionproc(unittest.TestCase):
     def test03_process_source_(self):
         # connection and unreadable resourcesync
         base_uri = "http://localhost:8000/rs/source/s3/"
-        sdproc = SourceDescriptionproc(base_uri)
+        sdproc = Sodesproc(base_uri)
         sdproc.read_source()
         self.assertEqual(200, sdproc.source_status)
         self.assertEqual(1, len(sdproc.exceptions))
@@ -193,7 +193,7 @@ class TestSourceDescriptionproc(unittest.TestCase):
     def test04_process_source(self):
         # connection and resourcesync is xml but not sitemap
         base_uri = "http://localhost:8000/rs/source/s4/"
-        sdproc = SourceDescriptionproc(base_uri)
+        sdproc = Sodesproc(base_uri)
         sdproc.read_source()
         self.assertEqual(200, sdproc.source_status)
         self.assertEqual(1, len(sdproc.exceptions))
@@ -205,7 +205,7 @@ class TestSourceDescriptionproc(unittest.TestCase):
     def test05_process_source(self):
         # connection and readable resourcesync but capability is not 'description'
         base_uri = "http://localhost:8000/rs/source/s5/"
-        sdproc = SourceDescriptionproc(base_uri)
+        sdproc = Sodesproc(base_uri)
         sdproc.read_source()
         self.assertEqual(200, sdproc.source_status)
         self.assertEqual(1, len(sdproc.exceptions))
@@ -217,7 +217,7 @@ class TestSourceDescriptionproc(unittest.TestCase):
     def test06_process_source(self):
         # connection and readable resourcesync
         base_uri = "http://localhost:8000/rs/source/s6/"
-        sdproc = SourceDescriptionproc(base_uri)
+        sdproc = Sodesproc(base_uri)
         sdproc.read_source()
         self.assertEqual(200, sdproc.source_status)
         self.assertEqual(Status.document, sdproc.status)

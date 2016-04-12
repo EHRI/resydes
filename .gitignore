@@ -75,6 +75,7 @@ venv/
 des/test/rs/destination/d1/files/
 des/test/rs/destination/d2/files/
 des/test/rs/source/redump/rd_*
+des/test/localhost:8000/files/resource1.txt
 .resync-client-status.cfg
 logs/*
 stop

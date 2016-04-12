@@ -189,7 +189,7 @@ class RelayProcessor(Processor):
         self.status = Status.processed_with_exceptions if self.has_exceptions() else Status.processed
 
 
-class SourceDescriptionproc(RelayProcessor):
+class Sodesproc(RelayProcessor):
     """
     SourceDescription eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
     """
@@ -200,10 +200,10 @@ class SourceDescriptionproc(RelayProcessor):
         else:
             self.base_uri = base_uri + "/"
         wellknown = urllib.parse.urljoin(self.base_uri, WELLKNOWN_RESOURCE)
-        super(SourceDescriptionproc, self).__init__(wellknown, CAPA_DESCRIPTION)
+        super(Sodesproc, self).__init__(wellknown, CAPA_DESCRIPTION)
 
     def __get_level_processor__(self, uri):
-        return SourceDescriptionproc(uri)
+        return Sodesproc(uri)
 
     def __process_lower__(self):
         # the source document is a source description

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.org/rs/terms/">
-<rs:md at="2016-04-05T14:04:32.337539Z" capability="resourcelist" completed="2016-04-05T14:04:32.340956Z" />
+<rs:md at="2016-04-12T08:01:32.405183Z" capability="resourcelist" completed="2016-04-12T08:01:32.411215Z" />
 <url><loc>http://localhost:8000/rs/source/s1/files/file3.txt</loc><lastmod>2016-03-23T17:06:02Z</lastmod><rs:md hash="md5:ET9mltFAwWcHC8xeJHkfNQ==" length="9" /></url>
-<url><loc>http://localhost:8000/rs/source/s1/files/resource1.txt</loc><lastmod>2016-04-05T14:04:22Z</lastmod><rs:md hash="md5:BE9/gOlJcBKJsB8dLn+0rg==" length="3336" /></url>
+<url><loc>http://localhost:8000/rs/source/s1/files/resource1.txt</loc><lastmod>2016-04-12T08:01:18Z</lastmod><rs:md hash="md5:t+F0ndmkI36q+T1m0FG99A==" length="3498" /></url>
 <url><loc>http://localhost:8000/rs/source/s1/files/resource2.txt</loc><lastmod>2016-03-24T11:18:17Z</lastmod><rs:md hash="md5:KmAON3nAL2Jp2hxszVfRwA==" length="1527" /></url>
 </urlset>

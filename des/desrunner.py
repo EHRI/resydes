@@ -16,7 +16,8 @@ except:
 import des.reporter
 from des.config import Config
 from des.location_mapper import DestinationMap
-from des.processor import SourceDescriptionproc, Capaproc
+from des.processor import Sodesproc, Capaproc
+from des.discover import Discoverer
 
 
 class DesRunner(object):
@@ -96,27 +97,34 @@ class DesRunner(object):
         for uri in self.sources:
             processor = None
             if task == "discover":
-                pass
+                discoverer = Discoverer(uri)
+                processor = discoverer.get_processor()
             elif task == "wellknown":
-                processor = SourceDescriptionproc(uri)
+                processor = Sodesproc(uri)
             elif task == "capability":
                 processor = Capaproc(uri)
 
-            try:
-                processor.process_source()
-                self.exceptions.extend(processor.exceptions)
-                # do something with processor status
-            except Exception as err:
-                self.exceptions.append(err)
-                self.logger.warn("Failure while syncing %s" % uri, exc_info=True)
-                des.reporter.instance().log_status(uri, exception=err)
+            if processor is None:
+                msg = "Could not discover processor for '%s'" % uri
+                self.logger.warn(msg)
+                self.exceptions.append(msg)
+                des.reporter.instance().log_status(uri, exception=msg)
+            else:
+                try:
+                    processor.process_source()
+                    self.exceptions.extend(processor.exceptions)
+                    # do something with processor status
+                except Exception as err:
+                    self.exceptions.append(err)
+                    self.logger.warn("Failure while syncing %s" % uri, exc_info=True)
+                    des.reporter.instance().log_status(uri, exception=err)
 
     def do_report(self, task):
         reporter = des.reporter.instance()
         reporter.sync_status_to_file()
         # reset used reporter
         des.reporter.reset_instance()
-        self.logger.info("Ran %s over %d sources with %d exceptions" % (task, len(self.sources), len(self.exceptions)))
+        self.logger.info("Ran task '%s' over %d sources with %d exceptions" % (task, len(self.sources), len(self.exceptions)))
         self.exceptions = []
 
     def stop(self):

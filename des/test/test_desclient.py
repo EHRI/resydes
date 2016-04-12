@@ -5,7 +5,6 @@ import unittest, logging, logging.config, threading, des.desclient, des.reporter
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from des.config import Config
 from resync.client import Client
-from resync.client_state import ClientState
 
 
 logging.config.fileConfig('logging.conf')

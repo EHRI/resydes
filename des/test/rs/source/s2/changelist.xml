@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.org/rs/terms/">
 <rs:md capability="changelist" />
-<url><loc>http://localhost:8000/rs/source/s2/files/resource2.txt</loc><lastmod>2016-04-05T14:04:34Z</lastmod><rs:md change="updated" hash="md5:o9/AV60q9Ob1EI7jn3e8Hg==" length="643" /></url>
-<url><loc>http://localhost:8000/rs/source/s2/files/added.txt</loc><lastmod>2016-04-05T14:04:34Z</lastmod><rs:md change="deleted" hash="md5:7pxX4zmtmpo+Yx/0alJlqw==" length="27" /></url>
+<url><loc>http://localhost:8000/rs/source/s2/files/resource2.txt</loc><lastmod>2016-04-12T08:01:35Z</lastmod><rs:md change="updated" hash="md5:B+EjnL+nW3pIKdJ/GFIRaA==" length="724" /></url>
+<url><loc>http://localhost:8000/rs/source/s2/files/added.txt</loc><lastmod>2016-04-12T08:01:35Z</lastmod><rs:md change="deleted" hash="md5:4yhhKNFORWZySbFrVWh6jg==" length="27" /></url>
 </urlset>
