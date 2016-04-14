@@ -1,6 +1,6 @@
 # resydes
 
-Destination for Resource Sync
+Destination harvester for [Resource Sync](http://www.openarchives.org/rs/1.0/resourcesync)
 
 ## installation
 
