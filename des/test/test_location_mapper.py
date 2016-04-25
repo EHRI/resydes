@@ -8,6 +8,7 @@ from des.location_mapper import DestinationMap
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
 
+
 class TestDestinationMap(unittest.TestCase):
 
     def setUp(self):
@@ -85,42 +86,87 @@ class TestDestinationMap(unittest.TestCase):
         desmap = DestinationMap()
 
         uri = "http://long.name.com/path/to/resource.xml"
-        self.assertEqual("./destination1", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("http://long.name.com", base_uri)
+        self.assertEqual("./destination1", destination)
 
         uri = "http://long.name.com/path/to/"
-        self.assertEqual("./destination1", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("http://long.name.com", base_uri)
+        self.assertEqual("./destination1", destination)
 
         uri = "http://long.name.com/"
-        self.assertEqual("./destination1", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("http://long.name.com", base_uri)
+        self.assertEqual("./destination1", destination)
 
         uri = "http://long.name.com"
-        self.assertEqual("./destination1", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("http://long.name.com", base_uri)
+        self.assertEqual("./destination1", destination)
 
-        #
+        # explicit path to resource in desmap
         uri = "https://first.com:8080/path1"
-        self.assertIsNone(desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("https://first.com:8080", base_uri)
+        self.assertIsNone(destination)
 
         uri = "https://first.com:8080/path1/to/resource.xml"
-        self.assertEqual("./destination2", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("https://first.com:8080/path1/to/resource.xml", base_uri)
+        self.assertEqual("./destination2", destination)
 
         uri = "https://first.com:8080/path2/"
-        self.assertEqual("./destination3", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("https://first.com:8080/path2", base_uri)
+        self.assertEqual("./destination3", destination)
 
         uri = "https://first.com:8080/path2"
-        self.assertEqual("./destination3", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("https://first.com:8080/path2", base_uri)
+        self.assertEqual("./destination3", destination)
 
         #
         uri = "https://not.mapped.com/resource.xml"
-        self.assertEqual("./default/path", desmap.find_destination(uri, "default/path"))
+        base_uri, destination = desmap.find_destination(uri, "default/path")
+        self.assertEqual("https://not.mapped.com", base_uri)
+        self.assertEqual("./default/path", destination)
 
         #
         uri = "https://not.mapped.com/resource.xml"
-        self.assertEqual("./not.mapped.com", desmap.find_destination(uri, netloc=True))
+        base_uri, destination = desmap.find_destination(uri, netloc=True)
+        self.assertEqual("https://not.mapped.com", base_uri)
+        self.assertEqual("./not.mapped.com", destination)
 
         desmap.set_root_folder("foo/bar")
 
         uri = "http://long.name.com/path/to/resource.xml"
-        self.assertEqual("foo/bar/destination1", desmap.find_destination(uri))
+        base_uri, destination = desmap.find_destination(uri)
+        self.assertEqual("http://long.name.com", base_uri)
+        self.assertEqual("foo/bar/destination1", destination)
+
+    def test06_find_local_path(self):
+        desmap = DestinationMap()
+
+        desmap.__set_destination__("http://a.name.com/path/ignored", "local/folder/a")
+        uri = "http://a.name.com/path/ignored/but/this/path/remains/file.txt"
+        base_uri, local_path = desmap.find_local_path(uri)
+        self.assertEqual("http://a.name.com/path/ignored", base_uri)
+        self.assertEqual("./local/folder/a/but/this/path/remains/file.txt", local_path)
+
+        desmap.__set_destination__("http://b.name.com/path/ignored/", "local/folder/b")
+        uri = "http://b.name.com/path/ignored/but/this/path/remains/file.txt"
+        base_uri, local_path = desmap.find_local_path(uri)
+        self.assertEqual("http://b.name.com/path/ignored", base_uri)
+        self.assertEqual("./local/folder/b/but/this/path/remains/file.txt", local_path)
+
+        desmap.__set_destination__("http://c.name.com/path/ignored", "local/folder/c")
+        uri = "http://c.name.com/path/ignored/but/this/path/remains/file.txt"
+        base_uri, local_path = desmap.find_local_path(uri, infix="infix")
+        self.assertEqual("http://c.name.com/path/ignored", base_uri)
+        self.assertEqual("./local/folder/c/infix/but/this/path/remains/file.txt", local_path)
+
+
 
 
 

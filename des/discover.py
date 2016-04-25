@@ -42,9 +42,10 @@ class Discoverer(object):
         The uri can be extended with '.well-known/resourcesync' which leads to a valid source description.
         :return: SourceDescriptionproc on a source description or None
         """
-        processor = Sodesproc(self.uri)
+        processor = Sodesproc(self.uri, report_errors=False)
         processor.read_source()
         if processor.status == Status.document:
+            processor.report_errors = True
             return processor
         else:
             return None
@@ -54,9 +55,10 @@ class Discoverer(object):
         The uri leads to a valid capabilitylist.
         :return: a Capaproc on a capabilitylist or None
         """
-        processor = Capaproc(self.uri)
+        processor = Capaproc(self.uri, report_errors=False)
         processor.read_source()
         if processor.status == Status.document:
+            processor.report_errors = True
             return processor
         else:
             return None

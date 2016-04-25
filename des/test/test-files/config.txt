@@ -13,3 +13,6 @@ use_checksum=True
 # Should we do an audit only or synchronize as well?
 audit_only = False
 
+# A list of things
+test_list = foo.bar, bar.foo, foo.bar.baz
+

@@ -32,12 +32,20 @@ CAPA_CHANGELIST = "changelist"
 CAPA_CHANGEDUMP = "changedump"
 
 
+class ProcessorListener(object):
+
+    def event_text_recieved(self, uri, text):
+        pass
+
+processor_listeners = []
+
+
 class Processor(object):
     """
     Reads a sitemap from a uri and turns it into a resync.resource_container.ResourceContainer
     """
 
-    def __init__(self, source_uri, expected_capability):
+    def __init__(self, source_uri, expected_capability, report_errors=True):
         """
         Initialize this class.
         :param source_uri: the uri of the sitemap that must be read
@@ -48,6 +56,7 @@ class Processor(object):
         self.status = Status.init
         self.source_uri = source_uri
         self.capability = expected_capability
+        self.report_errors = report_errors
 
         self.source_status = None
         self.exceptions = []
@@ -69,6 +78,7 @@ class Processor(object):
             assert self.source_status == 200, "Invalid response status: %d" % self.source_status
 
             text = response.text
+
             root = ET.fromstring(text)
             self.is_index = root.tag == SITEMAP_INDEX_ROOT
 
@@ -79,6 +89,10 @@ class Processor(object):
             capability = self.source_document.capability
             assert capability == self.capability, \
                 "Capability is not %s but %s" % (self.capability, capability)
+            # anyone interested in text?
+            for processor_listener in processor_listeners:
+                processor_listener.event_text_recieved(self.source_uri, text)
+
             self.describedby_url = self.source_document.describedby
             self.up_url = self.source_document.up # to a parent non-index document
             self.index_url = self.source_document.index # to a parent index document
@@ -87,31 +101,32 @@ class Processor(object):
         except requests.exceptions.ConnectionError as err:
             self.logger.debug("%s No connection: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
-            self.exceptions.append(err)
-            des.reporter.instance().log_status(self.source_uri, exception=err)
+            self.__report__(err)
 
         except xml.etree.ElementTree.ParseError as err:
             self.logger.debug("%s ParseError: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
-            self.exceptions.append(err)
-            des.reporter.instance().log_status(self.source_uri, exception=err)
+            self.__report__(err)
 
         except resync.sitemap.SitemapParseError as err:
             self.logger.debug("%s Unreadable source: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
-            self.exceptions.append(err)
-            des.reporter.instance().log_status(self.source_uri, exception=err)
+            self.__report__(err)
 
         except AssertionError as err:
             self.logger.debug("%s Error: %s" % (self.source_uri, str(err)))
             self.status = Status.read_error
-            self.exceptions.append(err)
-            des.reporter.instance().log_status(self.source_uri, exception=err)
+            self.__report__(err)
 
         finally:
             session.close()
 
         return self.status == Status.document
+
+    def __report__(self, err):
+        if self.report_errors:
+            self.exceptions.append(err)
+            des.reporter.instance().log_status(self.source_uri, exception=err)
 
     def has_exceptions(self):
         return len(self.exceptions) != 0
@@ -193,14 +208,14 @@ class Sodesproc(RelayProcessor):
     """
     SourceDescription eats the base uri of a source, looks for a .well-known/resourcesync and processes the contents.
     """
-    def __init__(self, base_uri):
+    def __init__(self, base_uri, report_errors=True):
         # urllib.parse.urljoin leaves out the last part of a path if it doesn't end with '/'
         if base_uri.endswith("/"):
             self.base_uri = base_uri
         else:
             self.base_uri = base_uri + "/"
         wellknown = urllib.parse.urljoin(self.base_uri, WELLKNOWN_RESOURCE)
-        super(Sodesproc, self).__init__(wellknown, CAPA_DESCRIPTION)
+        super(Sodesproc, self).__init__(wellknown, CAPA_DESCRIPTION, report_errors=report_errors)
 
     def __get_level_processor__(self, uri):
         return Sodesproc(uri)
@@ -218,8 +233,8 @@ class Capaproc(Processor):
     """
     Capaproc eats the uri of a capability list and processes the contents.
     """
-    def __init__(self, uri):
-        super(Capaproc, self).__init__(uri, CAPA_CAPABILITYLIST)
+    def __init__(self, uri, report_errors=True):
+        super(Capaproc, self).__init__(uri, CAPA_CAPABILITYLIST, report_errors=report_errors)
 
     def process_source(self):
         if not self.__assert_document__():

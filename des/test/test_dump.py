@@ -6,6 +6,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from resync.dump import Dump
 from resync.client import Client
 from des.dump import Redump
+from des.config import Config
 
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
@@ -60,8 +61,12 @@ def __write_dump__():
     d = Dump(resources=rl)
     d.write(basename="rs/source/redump/rd_")
 
-
+#@unittest.skip("Dump implementations from resync hardly sufficient. Need complete new implementation")
 class TestRedump(unittest.TestCase):
+
+    def setUp(self):
+        Config._set_config_filename("test-files/config.txt")
+        Config().__drop__()
 
     def test01_process_dump(self):
         __write_dump__()

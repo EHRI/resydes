@@ -6,14 +6,14 @@
 # 3. Audit
 #
 
-import sys, argparse, os.path, logging, logging.config, time
+import sys, argparse, os.path, logging, logging.config, time, importlib
 sys.path.append(".")
 try:
     sys.path.insert(0, "../resync")
 except:
     pass
 
-import des.reporter
+import des.reporter, des.processor
 from des.config import Config
 from des.location_mapper import DestinationMap
 from des.processor import Sodesproc, Capaproc
@@ -54,6 +54,16 @@ class DesRunner(object):
         self.logger.info("Started %s with pid %d" % (__file__, self.pid))
         self.logger.info("Configured %s from '%s'" % (self.__class__.__name__, config_filename))
         self.logger.info("Configured logging from '%s'" % logging_configuration_file)
+        self.__inject_dependencies__(config)
+
+    def __inject_dependencies__(self, config):
+        listeners = config.list_prop(Config.key_des_processor_listeners)
+        for listener in listeners:
+            names = listener.rsplit(".", 1)
+            clas = getattr(importlib.import_module(names[0]), names[1])
+
+            des.processor.processor_listeners.append(clas())
+            self.logger.info("Injected %s.%s" % (names[0], names[1]))
 
     def run(self, sources, task="discover", once=False):
         condition = True

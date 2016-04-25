@@ -158,3 +158,4 @@ class TestDesClient(unittest.TestCase):
 
         self.assertEqual(1, len(des.reporter.instance().sync_status))
 
+

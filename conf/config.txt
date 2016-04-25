@@ -22,3 +22,6 @@ sync_status_report_file=logs/sync_status.csv
 # How long should we wait between sync-rounds? unit is seconds.
 sync_pause=10
 
+# ProcessorListeners are injected into des.processor.Processor. comma-separated list.
+des_processor_listeners=des.processor_listener.SitemapWriter
+

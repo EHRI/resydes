@@ -18,6 +18,7 @@ class Config(object):
     key_audit_only = "audit_only"
     key_sync_status_report_file = "sync_status_report_file"
     key_sync_pause = "sync_pause"
+    key_des_processor_listeners = "des_processor_listeners"
 
     @staticmethod
     def __get__logger():
@@ -83,6 +84,17 @@ class Config(object):
         if value is None:
             return value
         return int(value)
+
+    def list_prop(self, key, default_value=[]):
+        value = self.prop(key)
+        if value is None:
+            return default_value
+        else:
+            list = []
+            values = value.split(",")
+            for v in values:
+                list.append(v.strip())
+            return list
 
     def __set_prop__(self, key, value):
         self.props[key] = value

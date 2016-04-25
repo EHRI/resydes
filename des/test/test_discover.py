@@ -6,9 +6,12 @@ import logging.config
 import threading
 import unittest
 import des.processor as proc
+from des.processor_listener import SitemapWriter
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from des.discover import Discoverer
 from des.status import Status
+from des.config import Config
+from des.location_mapper import DestinationMap
 
 
 logging.config.fileConfig('logging.conf')
@@ -24,6 +27,12 @@ def setUpModule():
     t.daemon = True
     logger.debug("Starting server at http://localhost:8000/")
     t.start()
+    proc.processor_listeners.append(SitemapWriter())
+    Config._set_config_filename("test-files/config.txt")
+    Config().__drop__()
+    DestinationMap._set_map_filename("test-files/desmap.txt")
+    DestinationMap().__drop__()
+    DestinationMap().__set_destination__("http://localhost:8000/rs/source/discover/", "rs/destination/discover")
 
 
 def tearDownModule():
@@ -84,3 +93,14 @@ class TestDiscoverer(unittest.TestCase):
 
         processor = discoverer.get_processor()
         self.assertIsInstance(processor, proc.Reliproc)
+        processor.read_source()
+
+    def test08_try_robots_with_netloc(self):
+        DestinationMap().__remove_destination__("http://localhost:8000/rs/source/discover/")
+        Config().__set_prop__(Config.key_use_netloc, "True")
+        uri = "http://localhost:8000/rs/source/discover/loc2"
+        discoverer = Discoverer(uri)
+
+        processor = discoverer.get_processor()
+        self.assertIsInstance(processor, proc.Reliproc)
+        processor.read_source()

@@ -1,0 +1,5 @@
+date,uri,in_sync,incremental,audit,same,created,updated,deleted,to_delete,exception,origin
+"2016-04-21 17:05:16.871395","http://localhost:8000/rs/source/s1","True","True","False","None","0","0","0","0","None","/Users/ecco/git/resync/resync/client.py:336"
+"2016-04-21 17:05:16.998680","http://localhost:8000/srv/source1/loc1","None","False","False","None","0","0","0","0","Could not discover processor for 'http://localhost:8000/srv/source1/loc1'","/Users/ecco/git/resydes/des/desrunner.py:121"
+"2016-04-21 17:05:17.040076","http://localhost:8000/srv/source1/loc4/capabilitylist.xml","None","False","False","None","0","0","0","0","Could not discover processor for 'http://localhost:8000/srv/source1/loc4/capabilitylist.xml'","/Users/ecco/git/resydes/des/desrunner.py:121"
+"2016-04-21 17:05:17.067159","http://localhost:8000/srv/source2","None","False","False","None","0","0","0","0","Could not discover processor for 'http://localhost:8000/srv/source2'","/Users/ecco/git/resydes/des/desrunner.py:121"

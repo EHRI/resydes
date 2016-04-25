@@ -66,6 +66,10 @@ class DesClient(Client):
         self.des_destination = mappings[1]  # i.e. rs/destination/d1
 
         uri = os.path.dirname(self.des_full_uri)
+        # if location of resourcelist.xml is not in the path of the resources or further down
+        # i.e. http://localhost:8000/srv/source2/resync/resourcelist.xml    and resource is at
+        #      http://localhost:8000/srv/source2/resource1.txt
+        # this still goes wrong.
         super().set_mappings((uri, self.des_destination))
 
     # Override name restriction

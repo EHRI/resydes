@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.org/rs/terms/">
 <rs:md capability="changelist" />
-<url><loc>http://localhost:8000/rs/source/s1/files/resource1.txt</loc><lastmod>2016-04-12T08:01:32Z</lastmod><rs:md change="updated" hash="md5:1+jHeSn4qKpDkNN7B9BydQ==" length="3525" /></url>
+<url><loc>http://localhost:8000/rs/source/s1/files/resource1.txt</loc><lastmod>2016-04-25T06:52:46Z</lastmod><rs:md change="updated" hash="md5:HPRoR0lxGLPMiO/v598hXQ==" length="4173" /></url>
 </urlset>

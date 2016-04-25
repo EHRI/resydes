@@ -45,6 +45,16 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.boolean_prop("no_key", True))
         self.assertFalse(config.boolean_prop("no_key", False))
 
+    def test04_list_prop(self):
+        Config._set_config_filename("test-files/config.txt")
+        config = Config()
+
+        list = config.list_prop("test_list")
+        self.assertEqual(3, len(list))
+        self.assertEqual("foo.bar", list[0])
+        self.assertEqual("bar.foo", list[1])
+        self.assertEqual("foo.bar.baz", list[2])
+
     def test04__drop__(self):
         Config._set_config_filename("test-files/config.txt")
         config1 = Config()

@@ -2,19 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-import datetime
-import glob
-import logging
-import logging.config
-import os.path
-import pathlib
-import shutil
-import threading
-import unittest
+import datetime, glob, logging, logging.config, os.path, pathlib, shutil, threading, unittest, des.processor
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 from des.processor import Sodesproc, Redumpproc
 from des.status import Status
+from des.config import Config
+from des.location_mapper import DestinationMap
+from des.processor_listener import SitemapWriter
 from resync.client import Client
 
 logging.config.fileConfig('logging.conf')
@@ -39,116 +34,116 @@ def tearDownModule():
 
 
 def __clear_sources_xml__(src):
-        """
-        remove all xml files from a rs/source subfolder
-        :param src: 's1', 's2' etc.
-        :return: None
-        """
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        s = os.path.join(abs_path, "rs/source", src, "*.xml")
-        files = glob.glob(s)
-        for f in files:
-            os.remove(f)
+    """
+    remove all xml files from a rs/source subfolder
+    :param src: 's1', 's2' etc.
+    :return: None
+    """
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    s = os.path.join(abs_path, "rs/source", src, "*.xml")
+    files = glob.glob(s)
+    for f in files:
+        os.remove(f)
 
 
 def __clear_destination__(des):
-        """
-        remove all files from rs/destination subfolder.
-        :param des: 'd1', 'd2' etc.
-        :return: None
-        """
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        files = os.path.join(abs_path, "rs/destination", des, "files")
-        shutil.rmtree(files, ignore_errors=True)
+    """
+    remove all files from rs/destination subfolder.
+    :param des: 'd1', 'd2' etc.
+    :return: None
+    """
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    files = os.path.join(abs_path, "rs/destination", des, "files")
+    shutil.rmtree(files, ignore_errors=True)
 
 
 def __create_resourcelist__(src, checksum=True):
-        """
-        Create a resourcelist xml for the source denominated by src.
-        :param src: 's1', 's2' etc.
-        :param checksum: should checksums be added to the xml.
-        :return: None
-        """
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        data = []
-        path = os.path.join(abs_path, "rs/source", src, "files")
-        for root, directories, filenames in os.walk(path):
-            for filename in filenames:
-                data.append(os.path.join(root,filename))
+    """
+    Create a resourcelist xml for the source denominated by src.
+    :param src: 's1', 's2' etc.
+    :param checksum: should checksums be added to the xml.
+    :return: None
+    """
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    data = []
+    path = os.path.join(abs_path, "rs/source", src, "files")
+    for root, directories, filenames in os.walk(path):
+        for filename in filenames:
+            data.append(os.path.join(root,filename))
 
-        paths = ",".join(data)
+    paths = ",".join(data)
 
-        outfile = os.path.join(abs_path, "rs/source", src, "resourcelist.xml")
+    outfile = os.path.join(abs_path, "rs/source", src, "resourcelist.xml")
 
-        # create a resourcelist from the files in test/rs/source/{src}/files
-        client = Client(checksum=checksum)
-        prefix = "http://localhost:8000/rs/source/" + src + "/files"
-        resourcedir = os.path.join(abs_path, "rs/source", src, "files")
-        args = [prefix, resourcedir]
+    # create a resourcelist from the files in test/rs/source/{src}/files
+    client = Client(checksum=checksum)
+    prefix = "http://localhost:8000/rs/source/" + src + "/files"
+    resourcedir = os.path.join(abs_path, "rs/source", src, "files")
+    args = [prefix, resourcedir]
 
-        client.set_mappings(args)
-        client.write_resource_list(paths, outfile)
+    client.set_mappings(args)
+    client.write_resource_list(paths, outfile)
 
 
 def __create_changelist__(src, checksum=True):
-        """
-        Create a changelist xml for the source denominated by src.
-        :param src: 's1', 's2' etc.
-        :param checksum: should checksums be added to the xml.
-        :return: None
-        """
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        data = []
-        path = os.path.join(abs_path, "rs/source", src, "files")
-        for root, directories, filenames in os.walk(path):
-            for filename in filenames:
-                data.append(os.path.join(root,filename))
+    """
+    Create a changelist xml for the source denominated by src.
+    :param src: 's1', 's2' etc.
+    :param checksum: should checksums be added to the xml.
+    :return: None
+    """
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    data = []
+    path = os.path.join(abs_path, "rs/source", src, "files")
+    for root, directories, filenames in os.walk(path):
+        for filename in filenames:
+            data.append(os.path.join(root,filename))
 
-        paths = ",".join(data)
+    paths = ",".join(data)
 
-        outfile = os.path.join(abs_path, "rs/source", src, "changelist.xml")
-        ref_sitemap = pathlib.Path(os.path.join(abs_path, "rs/source", src, "resourcelist.xml")).as_uri()
+    outfile = os.path.join(abs_path, "rs/source", src, "changelist.xml")
+    ref_sitemap = pathlib.Path(os.path.join(abs_path, "rs/source", src, "resourcelist.xml")).as_uri()
 
-        # create a changelist from the files in test/rs/source/{src}/files based on ^that
-        client = Client(checksum=checksum)
-        prefix = "http://localhost:8000/rs/source/" + src + "/files"
-        resourcedir = os.path.join(abs_path, "rs/source", src, "files")
-        args = [prefix, resourcedir]
+    # create a changelist from the files in test/rs/source/{src}/files based on ^that
+    client = Client(checksum=checksum)
+    prefix = "http://localhost:8000/rs/source/" + src + "/files"
+    resourcedir = os.path.join(abs_path, "rs/source", src, "files")
+    args = [prefix, resourcedir]
 
-        client.set_mappings(args)
-        client.write_change_list(paths=paths, outfile=outfile, ref_sitemap=ref_sitemap)
+    client.set_mappings(args)
+    client.write_change_list(paths=paths, outfile=outfile, ref_sitemap=ref_sitemap)
 
 
 def __change_resource__(src, resource):
-        """
-        Change a resource
-        :param src: 's1', 's2' etc.
-        :param resource: filename, i.e. 'resource1.txt', 'resource2.txt' etc.
-        :return:
-        """
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        filename = os.path.join(abs_path, "rs/source", src, "files", resource)
-        with open(filename, "a") as file:
-            file.write("\n%s" % str(datetime.datetime.now()))
+    """
+    Change a resource
+    :param src: 's1', 's2' etc.
+    :param resource: filename, i.e. 'resource1.txt', 'resource2.txt' etc.
+    :return:
+    """
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    filename = os.path.join(abs_path, "rs/source", src, "files", resource)
+    with open(filename, "a") as file:
+        file.write("\n%s" % str(datetime.datetime.now()))
 
 
 def __add_resource__(src, resource):
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        filename = os.path.join(abs_path, "rs/source", src, "files", resource)
-        with open(filename, "w") as file:
-            file.write("\n%s" % str(datetime.datetime.now()))
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    filename = os.path.join(abs_path, "rs/source", src, "files", resource)
+    with open(filename, "w") as file:
+        file.write("\n%s" % str(datetime.datetime.now()))
 
 
 def __delete_resource__(src, resource):
-        """
-        Delete a resource
-        :param src: 's1', 's2' etc.
-        :param resource: filename, i.e. 'resource1.txt', 'resource2.txt' etc.
-        :return:
-        """
-        abs_path = os.path.dirname(os.path.abspath(__name__))
-        filename = os.path.join(abs_path, "rs/source", src, "files", resource)
-        os.remove(filename)
+    """
+    Delete a resource
+    :param src: 's1', 's2' etc.
+    :param resource: filename, i.e. 'resource1.txt', 'resource2.txt' etc.
+    :return:
+    """
+    abs_path = os.path.dirname(os.path.abspath(__name__))
+    filename = os.path.join(abs_path, "rs/source", src, "files", resource)
+    os.remove(filename)
 
 
 class TestSodesproc(unittest.TestCase):
@@ -181,6 +176,7 @@ class TestSodesproc(unittest.TestCase):
     def test03_process_source_(self):
         # connection and unreadable resourcesync
         base_uri = "http://localhost:8000/rs/source/s3/"
+
         sdproc = Sodesproc(base_uri)
         sdproc.read_source()
         self.assertEqual(200, sdproc.source_status)
@@ -229,6 +225,30 @@ class TestSodesproc(unittest.TestCase):
         sdproc.process_source()
         self.assertEqual(Status.processed_with_exceptions, sdproc.status)
         self.assertEqual(3, len(sdproc.exceptions))
+
+    def test07_process_source(self):
+        # connection and readable resourcesync, write sitemap to file
+        try:
+            shutil.rmtree("rs/destination/d6/sitemaps")
+        except:
+            pass
+        Config._set_config_filename("test-files/config.txt")
+        Config().__drop__()
+        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap().__drop__()
+        des.reporter.reset_instance()
+        Config().__set_prop__(Config.key_use_netloc, "False")
+        Config().__set_prop__(Config.key_audit_only, "False")
+        DestinationMap().__set_destination__("http://localhost:8000/rs/source/s6", "rs/destination/d6")
+        des.processor.processor_listeners.append(SitemapWriter())
+        base_uri = "http://localhost:8000/rs/source/s6/"
+
+        sdproc = Sodesproc(base_uri)
+        sdproc.read_source()
+        self.assertEqual(200, sdproc.source_status)
+        self.assertEqual(Status.document, sdproc.status)
+        self.assertTrue(os.path.isfile("rs/destination/d6/sitemaps/.well-known/resourcesync"))
+
 
 
 class TestRedumpproc(unittest.TestCase):
