@@ -12,6 +12,8 @@ git clone git@github.com:EHRI/resydes.git
 cd resydes
 mkdir logs
 ```
+See for a more detailed guide the Wiki pages of this repo: https://github.com/EHRI/resydes/wiki/Installation-from-source
+
 ## running
 to run a test, either test against your own ResourceSync Source, or use the [ResyncServer](https://github.com/EHRI/resyncserver).
 ```
