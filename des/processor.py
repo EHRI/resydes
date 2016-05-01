@@ -34,7 +34,7 @@ CAPA_CHANGEDUMP = "changedump"
 
 class ProcessorListener(object):
 
-    def event_text_recieved(self, uri, text):
+    def event_sitemap_received(self, uri, capability, text):
         pass
 
 processor_listeners = []
@@ -89,9 +89,9 @@ class Processor(object):
             capability = self.source_document.capability
             assert capability == self.capability, \
                 "Capability is not %s but %s" % (self.capability, capability)
-            # anyone interested in text?
+            # anyone interested in sitemaps?
             for processor_listener in processor_listeners:
-                processor_listener.event_text_recieved(self.source_uri, text)
+                processor_listener.event_sitemap_received(self.source_uri, capability, text)
 
             self.describedby_url = self.source_document.describedby
             self.up_url = self.source_document.up # to a parent non-index document
@@ -250,11 +250,12 @@ class Capaproc(Processor):
             elif capability == CAPA_RESOURCELIST:
                 processor = Reliproc(resource.uri)
             elif capability == CAPA_RESOURCEDUMP:
-                processor = Redumpproc(resource.uri)
+                self.logger.warn("Resourcedump not implemented! %s" % self.source_uri)
+                #processor = Redumpproc(resource.uri)
             elif capability == CAPA_CHANGELIST:
                 processor = Chanliproc(resource.uri)
             elif capability == CAPA_CHANGEDUMP:
-                pass
+                self.logger.warn("Changedump not implemented! %s" % self.source_uri)
             else:
                 self.logger.debug("Unknown capability %s in %s" % (capability, self.source_uri))
                 self.exceptions.append("Unknown capability %s in %s" % (capability, self.source_uri))

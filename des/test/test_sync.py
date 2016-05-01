@@ -37,9 +37,9 @@ def tearDownModule():
 class TestRelisync(unittest.TestCase):
 
     def setUp(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         Config().__drop__()
-        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap.__set_map_filename__("test-files/desmap.txt")
         DestinationMap().__drop__()
         des.desclient.reset_instance()
 
@@ -118,6 +118,7 @@ class TestRelisync(unittest.TestCase):
         self.assertEqual(Status.processed, relisync.status)
         reporter = des.reporter.instance()
         # sync_status count: 1 for audit, 1 for create. expected 2
+        # print(reporter.sync_status_to_string())
         self.assertEqual(2, len(reporter.sync_status))
         self.assertEqual(0, reporter.sync_status[0].same)
         self.assertEqual(3, reporter.sync_status[0].created)
@@ -173,9 +174,9 @@ class TestRelisync(unittest.TestCase):
 class TestChanlisync(unittest.TestCase):
 
     def setUp(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         Config().__drop__()
-        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap.__set_map_filename__("test-files/desmap.txt")
         DestinationMap().__drop__()
         des.reporter.reset_instance()
 

@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.org/rs/terms/">
+<rs:md at="2016-04-21T10:02:03Z" capability="resourcedump-manifest" completed="2016-04-21T10:02:03Z" />
+<url><loc>http://localhost:8000/rs/source/redump/files/resource1.txt</loc><lastmod>2016-04-04T09:56:38Z</lastmod><rs:md hash="md5:oGP9F6zx79Vox34gNjjX8A==" length="16" path="resource1.txt" /></url>
+<url><loc>http://localhost:8000/rs/source/redump/files/resource2.txt</loc><lastmod>2016-04-04T09:56:52Z</lastmod><rs:md hash="md5:3kROKcj18v8f+AcAZ0BHZw==" length="16" path="resource2.txt" /></url>
+<url><loc>http://localhost:8000/rs/source/redump/files/resource3.txt</loc><lastmod>2016-04-04T09:57:09Z</lastmod><rs:md hash="md5:e6AKKByx4KrIr31jYgVm2A==" length="13" path="resource3.txt" /></url>
+<url><loc>http://localhost:8000/rs/source/redump/files/subfolder/resource_in_subfolder.txt</loc><lastmod>2016-04-04T14:23:47Z</lastmod><rs:md hash="md5:W1NAPACJo3YEM2/sDCxg8Q==" length="21" path="subfolder/resource_in_subfolder.txt" /></url>
+</urlset>

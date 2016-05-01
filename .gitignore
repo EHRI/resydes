@@ -72,9 +72,7 @@ venv/
 */**/incremental*.csv
 */**/mappings.txt
 */**/resourcelist.xml
-des/test/rs/destination/d1/files/
-des/test/rs/destination/d2/files/
-des/test/rs/source/redump/rd_*
+des/test/rs/destination/*
 des/test/localhost:8000/files/resource1.txt
 .resync-client-status.cfg
 logs/*

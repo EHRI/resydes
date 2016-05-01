@@ -1,12 +1,14 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, logging.config, threading, unittest, os
+import logging, logging.config, threading, unittest, os, des.dump
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from resync.dump import Dump
 from resync.client import Client
 from des.dump import Redump
 from des.config import Config
+from des.processor_listener import SitemapWriter
+from des.location_mapper import DestinationMap
 
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
@@ -61,12 +63,14 @@ def __write_dump__():
     d = Dump(resources=rl)
     d.write(basename="rs/source/redump/rd_")
 
-#@unittest.skip("Dump implementations from resync hardly sufficient. Need complete new implementation")
+@unittest.skip("Dump implementations from resync hardly sufficient. Need complete new implementation")
 class TestRedump(unittest.TestCase):
 
     def setUp(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         Config().__drop__()
+        des.dump.dump_listeners.append(SitemapWriter())
+        DestinationMap().__set_destination__("http://localhost:8000/rs/source", "rs/destination/d7")
 
     def test01_process_dump(self):
         __write_dump__()

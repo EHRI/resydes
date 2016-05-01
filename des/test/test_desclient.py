@@ -5,6 +5,7 @@ import unittest, logging, logging.config, threading, des.desclient, des.reporter
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from des.config import Config
 from resync.client import Client
+from des.test.test_processor import __clear_destination__
 
 
 logging.config.fileConfig('logging.conf')
@@ -103,7 +104,7 @@ class TestDesClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
 
     def test01_instance(self):
         desclient1 = des.desclient.instance()
@@ -118,6 +119,7 @@ class TestDesClient(unittest.TestCase):
         self.assertNotEqual(desclient1, desclient3)
 
     def test02_baseline_or_audit(self):
+        __clear_destination__("d1")
         __create_resourcelist__("s1", name="weird_name.xlm")
         uri = "http://localhost:8000/rs/source/s1/weird_name.xlm"
         destination = "rs/destination/d1"
@@ -130,7 +132,7 @@ class TestDesClient(unittest.TestCase):
         desclient.set_mappings((uri, destination))
         desclient.baseline_or_audit(allow_deletion, audit_only)
 
-        self.assertEqual(1, len(des.reporter.instance().sync_status))
+        self.assertEqual(2, len(des.reporter.instance().sync_status))
 
     def test03_incremental(self):
         resourcelist_name = "weird_name.xlm"

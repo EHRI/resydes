@@ -39,7 +39,7 @@ class Resync(object):
     def process_source(self):
         config = Config()
         netloc = config.boolean_prop(Config.key_use_netloc, False)
-        base_uri, destination = DestinationMap().find_destination(self.uri, netloc=netloc)
+        base_uri, destination = DestinationMap().find_destination(self.uri, netloc=netloc, infix="resources")
         if destination is None:
             self.logger.debug("No destination for %s" % self.uri)
             self.exceptions.append("No destination for %s" % self.uri)

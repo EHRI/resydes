@@ -28,9 +28,9 @@ def setUpModule():
     logger.debug("Starting server at http://localhost:8000/")
     t.start()
     proc.processor_listeners.append(SitemapWriter())
-    Config._set_config_filename("test-files/config.txt")
+    Config.__set_config_filename__("test-files/config.txt")
     Config().__drop__()
-    DestinationMap._set_map_filename("test-files/desmap.txt")
+    DestinationMap.__set_map_filename__("test-files/desmap.txt")
     DestinationMap().__drop__()
     DestinationMap().__set_destination__("http://localhost:8000/rs/source/discover/", "rs/destination/discover")
 

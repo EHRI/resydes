@@ -13,7 +13,7 @@ try:
 except:
     pass
 
-import des.reporter, des.processor
+import des.reporter, des.processor, des.dump
 from des.config import Config
 from des.location_mapper import DestinationMap
 from des.processor import Sodesproc, Capaproc
@@ -21,6 +21,21 @@ from des.discover import Discoverer
 
 
 class DesRunner(object):
+    """
+    usage: desrunner.py [-h] [-c] [-t] [-o] sources
+
+    Run a ResourceSync Destination as an application.
+
+    positional arguments:
+      sources         the name of the file with source urls
+
+    optional arguments:
+      -h, --help      show this help message and exit
+      -c, --config   the configuration filename (default: conf/config.txt)
+      -t, --task     the task that should be run. ['discover', 'wellknown',
+                      'capability'] (default: discover)
+      -o, --once      explore source urls once and exit (default: False)
+    """
 
     def __init__(self, config_filename="conf/config.txt"):
         '''
@@ -29,7 +44,7 @@ class DesRunner(object):
         :return: None
         '''
         try:
-            Config._set_config_filename(config_filename)
+            Config.__set_config_filename__(config_filename)
             config = Config()
 
         except FileNotFoundError as err:
@@ -58,41 +73,64 @@ class DesRunner(object):
 
     def __inject_dependencies__(self, config):
         listeners = config.list_prop(Config.key_des_processor_listeners)
+        self.__inject__(listeners, des.processor.processor_listeners)
+
+        listeners = config.list_prop(Config.key_des_dump_listeners)
+        self.__inject__(listeners, des.dump.dump_listeners)
+
+    def __inject__(self, listeners, list):
         for listener in listeners:
             names = listener.rsplit(".", 1)
             clas = getattr(importlib.import_module(names[0]), names[1])
-
-            des.processor.processor_listeners.append(clas())
+            list.append(clas())
             self.logger.info("Injected %s.%s" % (names[0], names[1]))
 
     def run(self, sources, task="discover", once=False):
+        """
+        Run the DesRunner. A running application can be stopped by creating a file named 'stop' in the directory
+        the runner was started from.
+        Source urls are read from the file given in param 'sources'. This file is read each time a full round
+        of synchronizing has taken place, so source urls can be extended or changed without restarting the application.
+
+        Sources are mapped to the destinations given in the file denoted by the configuration parameter
+        "location_mapper_destination_file".
+
+        :param sources: the file containing source urls
+        :param task: the task to run.
+                        - If source urls can all be discovered by reading the .well-known/resourcesync
+                            on each source, use 'wellknown'.
+                        - If all source urls point to capability lists, use 'capability'.
+                        - If source urls are heterogeneous, use 'discover'.
+        :param once: True for exploring source urls once and than exit, False otherwise
+        :return:
+        """
         condition = True
         while condition:
             # list of urls
             self.logger.info("Reading source urls from '%s'" % sources)
-            self.read_sources_doc(sources)
+            self.__read_sources_doc__(sources)
             # reset url --> destination map. New mappings may be configured
-            DestinationMap._set_map_filename(Config().
-                                             prop(Config.key_location_mapper_destination_file, "conf/desmap.txt"))
+            DestinationMap.__set_map_filename__(Config().
+                                                prop(Config.key_location_mapper_destination_file, "conf/desmap.txt"))
             # drop to force fresh read from file
             DestinationMap().__drop__()
             # Set the root of the destination folder if configured
             DestinationMap().set_root_folder(Config().prop(Config.key_destination_root))
             # do all the urls
-            self.do_task(task)
+            self.__do_task__(task)
             # report
-            self.do_report(task)
+            self.__do_report__(task)
             # to continue or not to continue
-            condition = not (once or self.stop())
+            condition = not (once or self.__stop__())
             if condition:
                 pause = Config().int_prop(Config.key_sync_pause)
                 self.logger.info("Going to sleep for %d seconds." % pause)
                 self.logger.info("command line: 'touch stop' to stop this process with pid %d." % self.pid)
                 time.sleep(pause)
                 # repeat after sleep
-                condition = not (once or self.stop())
+                condition = not (once or self.__stop__())
 
-    def read_sources_doc(self, sources):
+    def __read_sources_doc__(self, sources):
         with open(sources) as f:
             lines = f.read().splitlines()
         self.sources = []
@@ -103,7 +141,7 @@ class DesRunner(object):
                 self.sources.append(line)
         self.logger.info("Got %d source urls from '%s'" % (len(self.sources), sources))
 
-    def do_task(self, task):
+    def __do_task__(self, task):
         for uri in self.sources:
             processor = None
             if task == "discover":
@@ -129,15 +167,15 @@ class DesRunner(object):
                     self.logger.warn("Failure while syncing %s" % uri, exc_info=True)
                     des.reporter.instance().log_status(uri, exception=err)
 
-    def do_report(self, task):
+    def __do_report__(self, task):
         reporter = des.reporter.instance()
         reporter.sync_status_to_file()
-        # reset used reporter
-        des.reporter.reset_instance()
         self.logger.info("Ran task '%s' over %d sources with %d exceptions" % (task, len(self.sources), len(self.exceptions)))
+        # reset used reporter, clear exceptions
+        des.reporter.reset_instance()
         self.exceptions = []
 
-    def stop(self):
+    def __stop__(self):
         stop = os.path.isfile("stop")
         if stop:
             self.logger.info("Stopping %s because found file named 'stop'" % self.__class__.__name__)

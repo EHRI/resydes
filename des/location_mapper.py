@@ -4,12 +4,37 @@
 import logging, os.path, inspect
 from urllib.parse import urlparse, urlunparse
 
-#DEFAULT_MAP_FILENAME = "desmap.txt"
-
 
 class DestinationMap(object):
+    """
+    Singleton to map uri's to destinations on the local file system.
+    To obtain the singleton instance call the constructor: DestinationMap()
+    Prior to instantiating an instance, a map file may be set with the static method
+    __set_map_filename__(map_filename). In order to force rereading of the map file, an instance may be dropped
+    by calling __drop__() on the existing instance.
 
-    _map_filename = None #DEFAULT_MAP_FILENAME
+
+    DESTINATION MAPPING AT WORK
+
+    The following schema shows destination mapping at work. In the map file a base uri is mapped to a destination:
+
+        http://abcd.site.com/path/ignored=/data/resources/abcd
+
+    All uri's that are extensions of the same base uri will be mapped to that destination.
+
+    |------------ base uri -----------|
+    |http://abcd.site.com/path/ignored/some/path/to/resource.ext
+    |------------------------ full uri ------------------------|
+
+    |---------- destination ----------|
+    |             /data/resources/abcd/some/path/to/resource.ext
+    |----------------------- local path -----------------------|
+
+    Effectively the base uri will be replaced by destination.
+
+    """
+
+    _map_filename = None
 
     @staticmethod
     def __get__logger():
@@ -17,7 +42,7 @@ class DestinationMap(object):
         return logger
 
     @staticmethod
-    def _set_map_filename(map_filename):
+    def __set_map_filename__(map_filename):
         if DestinationMap._instance is None:
             DestinationMap.__get__logger().info("Setting map_filename to '%s'", map_filename)
             DestinationMap._map_filename = map_filename
@@ -27,10 +52,6 @@ class DestinationMap(object):
 
     @staticmethod
     def _get_map_filename():
-        if not DestinationMap._map_filename:
-            #DestinationMap._set_map_filename(DEFAULT_MAP_FILENAME)
-            pass
-
         return DestinationMap._map_filename
 
     @staticmethod
@@ -80,7 +101,7 @@ class DestinationMap(object):
         else:
             self.root_folder = root_folder
 
-    def find_destination(self, uri, default_destination=None, netloc=False):
+    def find_destination(self, uri, default_destination=None, netloc=False, infix=""):
         base_uri = uri
         destination = None
         path = None
@@ -101,6 +122,9 @@ class DestinationMap(object):
 
         if destination is not None and not os.path.isabs(destination):
             destination = os.path.join(self.root_folder, destination)
+
+        if destination is not None and infix != "":
+            destination = os.path.join(destination, infix)
 
         return base_uri, destination
 
@@ -135,8 +159,6 @@ class DestinationMap(object):
             local_path = os.path.join(destination, infix, postfix)
 
         return base_uri, local_path
-
-
 
     def __set_destination__(self, uri, destination):
         if uri.endswith("/"):

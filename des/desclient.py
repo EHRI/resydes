@@ -69,7 +69,7 @@ class DesClient(Client):
         # if location of resourcelist.xml is not in the path of the resources or further down
         # i.e. http://localhost:8000/srv/source2/resync/resourcelist.xml    and resource is at
         #      http://localhost:8000/srv/source2/resource1.txt
-        # this still goes wrong.
+        # this still goes wrong in the Client.
         super().set_mappings((uri, self.des_destination))
 
     # Override name restriction

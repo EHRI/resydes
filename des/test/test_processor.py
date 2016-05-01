@@ -53,7 +53,7 @@ def __clear_destination__(des):
     :return: None
     """
     abs_path = os.path.dirname(os.path.abspath(__name__))
-    files = os.path.join(abs_path, "rs/destination", des, "files")
+    files = os.path.join(abs_path, "rs/destination", des, "resources")
     shutil.rmtree(files, ignore_errors=True)
 
 
@@ -232,9 +232,9 @@ class TestSodesproc(unittest.TestCase):
             shutil.rmtree("rs/destination/d6/sitemaps")
         except:
             pass
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         Config().__drop__()
-        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap.__set_map_filename__("test-files/desmap.txt")
         DestinationMap().__drop__()
         des.reporter.reset_instance()
         Config().__set_prop__(Config.key_use_netloc, "False")

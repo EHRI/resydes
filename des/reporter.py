@@ -44,6 +44,13 @@ class Reporter(object):
             file.close()
         self.logger.info("Wrote %d source statuses to audit file %s" % (len(self.sync_status), filename))
 
+    def sync_status_to_string(self):
+        s = ""
+        for item in self.sync_status:
+            s = s + str(item) + "\n"
+        return s
+
+
 
 class SourceStatus(object):
 

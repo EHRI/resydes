@@ -8,11 +8,14 @@ from des.processor import Sodesproc, Capaproc, Reliproc
 
 
 class Discoverer(object):
+    """
+    Discover resource sync sitemaps.
+    """
 
     def __init__(self, uri):
         """
-
-        :param uri:
+        Initialize a Discoverer starting on the given uri
+        :param uri: uri to discover
         :return:
         """
         self.logger = logging.getLogger(__name__)
@@ -40,7 +43,7 @@ class Discoverer(object):
     def try_wellknown(self):
         """
         The uri can be extended with '.well-known/resourcesync' which leads to a valid source description.
-        :return: SourceDescriptionproc on a source description or None
+        :return: Sodesproc on a source description or None
         """
         processor = Sodesproc(self.uri, report_errors=False)
         processor.read_source()

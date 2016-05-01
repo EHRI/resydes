@@ -19,7 +19,7 @@ class TestDesrunner(unittest.TestCase):
         runner.run(sources, task, once)
 
     def test_inject_dependencies(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         Config().__set_prop__(Config.key_des_processor_listeners,
                               "des.processor_listener.SitemapWriter, des.processor.ProcessorListener")
 

@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class TestDestinationMap(unittest.TestCase):
 
     def setUp(self):
-        DestinationMap._set_map_filename("test-files/desmap.txt")
+        DestinationMap.__set_map_filename__("test-files/desmap.txt")
         DestinationMap().__drop__()
 
-    def test01_shorten(self):
+    def test_shorten_01(self):
         uri = "http://long.name.com/des/ti/na/tion/path/file.xml"
         new_uri, new_path = DestinationMap.shorten(uri)
         self.assertEqual("http://long.name.com/des/ti/na/tion/path", new_uri)
@@ -45,7 +45,7 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("http://long.name.com", new_uri)
         self.assertEqual("", new_path)
 
-    def test02_shorten(self):
+    def test_shorten_02(self):
         uri = "file:///Users/you/git"
 
         new_uri, new_path = DestinationMap.shorten(uri)
@@ -64,25 +64,25 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("file://", new_uri)
         self.assertEqual("", new_path)
 
-    def test03_shorten(self):
+    def test_shorten_03(self):
         uri = "https://docs.python.org/3.4/library/urllib.parse.html?highlight=urlparse#urllib.parse.urlparse"
         new_uri, new_path = DestinationMap.shorten(uri)
         self.assertEqual("https://docs.python.org/3.4/library", new_uri)
         self.assertEqual("/3.4/library", new_path)
 
-    def test04_set_filename_once(self):
-        DestinationMap._set_map_filename("test-files/desmap.txt")
+    def test_set_filename_once(self):
+        DestinationMap.__set_map_filename__("test-files/desmap.txt")
         self.assertEqual("test-files/desmap.txt", DestinationMap._get_map_filename())
         desmap = DestinationMap()
         self.assertEqual("test-files/desmap.txt", desmap._map_filename)
 
-        DestinationMap._set_map_filename("test-files/other-desmap.txt")
+        DestinationMap.__set_map_filename__("test-files/other-desmap.txt")
         self.assertEqual("test-files/desmap.txt", DestinationMap._get_map_filename())
         desmap = DestinationMap()
         self.assertEqual("test-files/desmap.txt", desmap._map_filename)
 
-    def test05_find_destination(self):
-        DestinationMap._set_map_filename("test-files/desmap.txt")
+    def test_find_destination(self):
+        DestinationMap.__set_map_filename__("test-files/desmap.txt")
         desmap = DestinationMap()
 
         uri = "http://long.name.com/path/to/resource.xml"
@@ -145,7 +145,20 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("http://long.name.com", base_uri)
         self.assertEqual("foo/bar/destination1", destination)
 
-    def test06_find_local_path(self):
+    def test_find_destination_with_infix(self):
+        desmap = DestinationMap()
+
+        desmap.__set_destination__("http://a.name.com/path/ignored", "local/folder/a")
+        uri = "http://a.name.com/path/ignored/but/this/path/remains/file.txt"
+        base_uri, destination = desmap.find_destination(uri, infix="resources")
+        self.assertEqual("http://a.name.com/path/ignored", base_uri)
+        self.assertEqual("./local/folder/a/resources", destination)
+
+        base_uri, destination = desmap.find_destination(uri, infix="sitemaps")
+        self.assertEqual("http://a.name.com/path/ignored", base_uri)
+        self.assertEqual("./local/folder/a/sitemaps", destination)
+
+    def test_find_local_path(self):
         desmap = DestinationMap()
 
         desmap.__set_destination__("http://a.name.com/path/ignored", "local/folder/a")
@@ -167,7 +180,8 @@ class TestDestinationMap(unittest.TestCase):
         self.assertEqual("./local/folder/c/infix/but/this/path/remains/file.txt", local_path)
 
 
-
+if __name__ == "__main__":
+    unittest.main()
 
 
 

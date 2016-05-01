@@ -12,26 +12,26 @@ logger = logging.getLogger(__name__)
 class TestConfig(unittest.TestCase):
 
     def setUp(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         Config().__drop__()
 
     def test01_new(self):
-        Config._set_config_filename("test-files/no-config.txt")
+        Config.__set_config_filename__("test-files/no-config.txt")
 
         with self.assertRaises(FileNotFoundError):
             Config()
 
     def test02_new(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         config = Config()
         self.assertEqual("test-files/config.txt", config._config_filename)
-        self.assertEqual("test-files/config.txt", Config._get_config_filename())
+        self.assertEqual("test-files/config.txt", Config.__get_config_filename__())
 
         self.assertEqual("logging.conf", config.prop(Config.key_logging_configuration_file))
         self.assertEqual("test-files/desmap.txt", config.prop(Config.key_location_mapper_destination_file))
 
     def test03_boolean_prop(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         config = Config()
 
         self.assertFalse(config.boolean_prop(Config.key_use_netloc))
@@ -46,7 +46,7 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(config.boolean_prop("no_key", False))
 
     def test04_list_prop(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         config = Config()
 
         list = config.list_prop("test_list")
@@ -56,18 +56,21 @@ class TestConfig(unittest.TestCase):
         self.assertEqual("foo.bar.baz", list[2])
 
     def test04__drop__(self):
-        Config._set_config_filename("test-files/config.txt")
+        Config.__set_config_filename__("test-files/config.txt")
         config1 = Config()
 
         self.assertIsNotNone(config1)
         self.assertIsNone(config1.prop("this_is"))
         config1.__drop__()
-        self.assertIsNone(Config._instance)
+        self.assertIsNone(Config.__instance__)
 
-        Config._set_config_filename("test-files/alt-config.txt")
+        Config.__set_config_filename__("test-files/alt-config.txt")
         config2 = Config()
         self.assertIsNotNone(config2)
         self.assertNotEqual(config1, config2)
         self.assertEqual("a_test", config2.prop("this_is"))
         config2.__drop__()
 
+
+if __name__ == "__main__":
+    unittest.main()

@@ -14,7 +14,7 @@ class SitemapWriter(ProcessorListener):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    def event_text_recieved(self, uri, text):
+    def event_sitemap_received(self, uri, capability, text):
         config = Config()
         netloc = config.boolean_prop(Config.key_use_netloc, False)
         baser_uri, local_path = DestinationMap().find_local_path(uri, netloc=netloc, infix=SITEMAP_FOLDER)
@@ -22,6 +22,6 @@ class SitemapWriter(ProcessorListener):
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, "w") as file:
                 file.write(text)
-            self.logger.debug("Saved sitemap '%s'" % local_path)
+            self.logger.debug("Saved %s '%s'" % (capability, local_path))
         else:
-            self.logger.warn("Could not save sitemap. No local path for %s" % uri)
+            self.logger.warn("Could not save %s. No local path for %s" % (capability, uri))
