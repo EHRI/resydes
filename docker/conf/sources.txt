@@ -1,0 +1,7 @@
+# list of url's to discover
+#
+# Examples:
+# http://somehost.com:/srv/source1/
+# http://otherhost.nl/source2
+# http://yetanother.edu
+#
