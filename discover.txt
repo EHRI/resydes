@@ -1,4 +1,6 @@
 # list of url's to discover
+#
+# Examples:
 http://localhost:8000/srv/source1/loc1
 #http://localhost:8000/srv/source1/loc2
 #http://localhost:8000/srv/source2

@@ -47,7 +47,7 @@ class DestinationMap(object):
             DestinationMap.__get__logger().info("Setting map_filename to '%s'", map_filename)
             DestinationMap._map_filename = map_filename
         else:
-            DestinationMap.__get__logger().warn("Setting map_filename on already initialized class. Using '%s'"
+            DestinationMap.__get__logger().info("Setting map_filename on already initialized class. Using '%s'"
                                         % DestinationMap._get_map_filename())
 
     @staticmethod

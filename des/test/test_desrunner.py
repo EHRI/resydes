@@ -11,7 +11,7 @@ class TestDesrunner(unittest.TestCase):
     @unittest.skip("real live test")
     def test_practical(self):
         config = "/Users/ecco/APPS/resydes/resydes/conf2/config.txt"
-        sources = "/Users/ecco/APPS/resydes/sources.txt"
+        sources = "/Users/ecco/APPS/resydes/desmap.txt"
         task = "discover"
         once = True
 

@@ -77,3 +77,10 @@ des/test/localhost:8000/files/resource1.txt
 .resync-client-status.cfg
 logs/*
 stop
+docker/destination/
+docker/logs/
+des/test/localhost:8000/sitemaps/rs/source/discover/
+des/test/localhost:8000/sitemaps/rs/source/redump/
+des/test/logs/
+des/test/rs/source/discover/loc2/dataset1/
+

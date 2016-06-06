@@ -1,0 +1,5 @@
+**/.DS_Store
+**/__pycache__
+**/test
+docker/destination
+docker/logs

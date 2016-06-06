@@ -125,7 +125,7 @@ class DesRunner(object):
             if condition:
                 pause = Config().int_prop(Config.key_sync_pause)
                 self.logger.info("Going to sleep for %d seconds." % pause)
-                self.logger.info("command line: 'touch stop' to stop this process with pid %d." % self.pid)
+                self.logger.debug("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
                 time.sleep(pause)
                 # repeat after sleep
                 condition = not (once or self.__stop__())

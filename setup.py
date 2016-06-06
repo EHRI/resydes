@@ -13,9 +13,12 @@ setup(name='resydes',
       author_email='henk.van.den.berg@dans.knaw.nl',
       url='https://github.com/EHRI/resydes',
       packages=['des'],
-      data_files=[('conf', ['conf/config.txt', 'conf/desmap.txt', 'conf/logging.conf']),
-                  ('logs', ['']),
-                  ('', ['README.md'])],
+      install_requires=['requests'],
+      # configuration files are injected at start up of desrunner
+      # data_files=[('/conf', ['conf/config.txt', 'conf/desmap.txt', 'conf/logging.conf']),
+      #             #('logs', ['']),
+      #             #('', ['README.md'])
+      # ],
       # dependency_links=['https://github.com/EHRI/resync/archive/ehribranch.zip'],
       # install_requires=[
       #     'resync',
