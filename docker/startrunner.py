@@ -4,6 +4,7 @@
 import argparse
 from des.desrunner import DesRunner
 
+print("================= Resydes version 0.1 =================")
 
 task_choices = ['discover', 'wellknown', 'capability']
 parser = argparse.ArgumentParser(description="Run a ResourceSync Destination.",

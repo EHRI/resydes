@@ -4,6 +4,5 @@
 # http://somehost.com:/srv/source1/
 # http://otherhost.nl/source2
 # http://yetanother.edu
-
-
-http://zandbak11.dans.knaw.nl
+#
+http://zandbak11.dans.knaw.nl/ehri2/rs

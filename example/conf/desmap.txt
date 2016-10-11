@@ -15,3 +15,4 @@
 # http://otherhost.nl/source2/=destination2
 # http://yetanother.edu:/path/to/source3=/absolute/destination
 #
+http://zandbak11.dans.knaw.nl/ehri2/rs/collection1/source1/dance/guide.xml=ehri2/rs/collection1
