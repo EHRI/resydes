@@ -104,8 +104,8 @@ all synchronized resources. The configuration parameter
 takes a boolean and specifies whether the netloc part of source uri's
 should be used as names for subdirectories.
 
-The file `conf/desmap.txt` can be used to map sources to destination
-folders.
+The file `conf/desmap.txt` can be used to map sources to specific
+destination folders.
 
 ### Drawbacks
 
