@@ -93,7 +93,7 @@ With task `discover` the urls in the sources file can point to
 mixed locations. Site A might be discovered through the 
 description file at `.well-known/resourcesync`, site B might be
 discovered through links in the file `robots.txt`, while from site C
-the resourclists mentioned in a specific capabilitylist are 
+the resourcelists mentioned in a specific capabilitylist are 
 synchronized.
 
 ### Destination
